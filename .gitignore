@@ -1,0 +1,12 @@
+# Secrets: NEVER upload these
+.env
+
+# Built by src/ingest.py, can be recreated at any time
+db/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.gradio/
