@@ -13,6 +13,7 @@ import eligibility  # noqa: E402
 import rag  # noqa: E402
 from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
+from textutils import text_of  # noqa: E402
 
 CSS = """
 .message, .message * { direction: rtl; text-align: right; }
@@ -69,8 +70,8 @@ def next_suggestions(history: list, message: str, skip: tuple[str, ...] = ()) ->
     asked = {message.strip(), *skip}
     for item in history or []:
         if isinstance(item, dict) and item.get("role") == "user":
-            asked.add(str(item.get("content", "")).strip())
-    used_calculator = any("حاسبة القبول" in str(i.get("content", "")) for i in history or [] if isinstance(i, dict))
+            asked.add(text_of(item.get("content")).strip())
+    used_calculator = any("حاسبة القبول" in text_of(i.get("content")) for i in history or [] if isinstance(i, dict))
     pool = [q for q in SUGGESTIONS if q not in asked and not (q == CALCULATOR_BUTTON and used_calculator)]
     return pool[:3]
 

@@ -29,3 +29,14 @@ def tokenize(text: str) -> list[str]:
             word = word[match.end():]
         tokens.append(word)
     return tokens
+
+
+def text_of(content) -> str:
+    """Chat history text. Gradio 6 stores it as [{"type": "text", "text": "..."}], older versions as a string."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, dict):
+        return str(content.get("text", ""))
+    if isinstance(content, (list, tuple)):
+        return " ".join(text_of(part) for part in content)
+    return "" if content is None else str(content)

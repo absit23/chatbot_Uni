@@ -12,7 +12,7 @@ import re
 import json
 
 from config import DEPARTMENTS_FILE, PAGES_FILE, UNIVERSITY_NAME
-from textutils import normalize, tokenize
+from textutils import normalize, text_of, tokenize
 
 BRANCHES = {
     "علمي": "علمي", "احيائي": "احيائي", "تطبيقي": "تطبيقي", "ادبي": "ادبي",
@@ -145,9 +145,9 @@ def _assistant_text(history: list) -> str:
     parts = []
     for item in history or []:
         if isinstance(item, dict) and item.get("role") == "assistant":
-            parts.append(str(item.get("content") or ""))
+            parts.append(text_of(item.get("content")))
         elif isinstance(item, (list, tuple)) and len(item) > 1 and item[1]:
-            parts.append(str(item[1]))
+            parts.append(text_of(item[1]))
     return "\n".join(parts)
 
 
@@ -156,8 +156,7 @@ def _user_messages(history: list) -> list[str]:
     messages = []
     for item in history or []:
         if isinstance(item, dict) and item.get("role") == "user":
-            content = item.get("content")
-            messages.append(content if isinstance(content, str) else str(content))
+            messages.append(text_of(item.get("content")))
         elif isinstance(item, (list, tuple)) and item and isinstance(item[0], str):
             messages.append(item[0])
     return messages[::-1][:4]
