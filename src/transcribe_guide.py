@@ -19,7 +19,7 @@ import pymupdf
 from google import genai
 from google.genai import types
 
-from config import CLEAN_PAGES_FILE, GEMINI_API_KEY, GEMINI_MODEL, PDF_FILE, PRINTED_PAGE_OFFSET
+from config import CLEAN_PAGES_FILE, GEMINI_API_KEY, GEMINI_MODEL, OCR_PAGES_FILE, PDF_FILE, PRINTED_PAGE_OFFSET
 from textutils import ARABIC_DIGITS
 
 SECONDS_BETWEEN_PAGES = 7  # stays under the free per-minute limit
@@ -45,23 +45,45 @@ def load_finished() -> dict[int, str]:
     return {r["page"]: r["text"] for r in records}
 
 
-def transcribe(client: genai.Client, image_png: bytes) -> str:
-    """Ask Gemini to read one page, waiting and retrying if it says slow down."""
-    for attempt in range(5):
+def transcribe(client: genai.Client, image_png: bytes) -> str | None:
+    """Ask Gemini to read one page. Returns None if Gemini keeps refusing this page.
+
+    Busy servers (503) and rate limits (429) are retried with longer waits.
+    An EMPTY answer usually means Gemini blocked the page on purpose (for
+    example, it looks like text published elsewhere), so retrying the same way
+    rarely helps. We try twice more with a little randomness, then give up on
+    this page and use the rough OCR text instead.
+    """
+    empty_answers = 0
+    for attempt in range(6):
         try:
             response = client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=[types.Part.from_bytes(data=image_png, mime_type="image/png"), PROMPT],
-                config=types.GenerateContentConfig(temperature=0),
+                config=types.GenerateContentConfig(temperature=0 if empty_answers == 0 else 0.4),
             )
             if response.text:
                 return response.text.strip()
-            raise RuntimeError("empty answer")
+            empty_answers += 1
+            reason = response.candidates[0].finish_reason if response.candidates else "no candidates"
+            print(f"  empty answer (reason: {reason})")
+            if empty_answers >= 3:
+                return None
         except Exception as error:
             wait = 30 * (attempt + 1)
             print(f"  problem: {error}\n  waiting {wait}s before trying again...")
             time.sleep(wait)
-    raise SystemExit("Stopped after 5 failures. The daily limit may be used up: run this again tomorrow.")
+    raise SystemExit("Stopped after repeated failures. The daily limit may be used up: run this again later.")
+
+
+def ocr_fallback(number: int) -> str:
+    """The rough Tesseract text for one page: good words, unreliable numbers."""
+    with open(OCR_PAGES_FILE, encoding="utf-8") as f:
+        for line in f:
+            record = json.loads(line)
+            if record["page"] == number:
+                return record["text"]
+    return ""
 
 
 def main():
@@ -70,6 +92,7 @@ def main():
     client = genai.Client(api_key=GEMINI_API_KEY)
     pdf = pymupdf.open(PDF_FILE)
     finished = load_finished()
+    fallback_pages = []
 
     with open(CLEAN_PAGES_FILE, "a", encoding="utf-8") as out:
         for index, page in enumerate(pdf):
@@ -78,6 +101,10 @@ def main():
                 continue
             print(f"page {index + 1}/{len(pdf)}")
             text = transcribe(client, page.get_pixmap(dpi=200).tobytes("png"))
+            if text is None:
+                print("  Gemini would not read this page. Using the rough OCR text instead.")
+                text = ocr_fallback(number)
+                fallback_pages.append(number)
             out.write(json.dumps({"page": number, "text": text}, ensure_ascii=False) + "\n")
             out.flush()
             finished[number] = text
@@ -91,6 +118,8 @@ def main():
             suspicious[number] = sorted(extra)
 
     print("\nFinished. Now run: python src/ingest.py")
+    if fallback_pages:
+        print(f"These printed pages use rough OCR text, so check their numbers by eye: {fallback_pages}")
     if suspicious:
         print("Check these printed pages by eye. These numbers were not in the PDF's own text:")
         for number, values in suspicious.items():
