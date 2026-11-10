@@ -139,6 +139,17 @@ def _read(text: str) -> dict:
             "elsewhere": elsewhere, "about_grades": about_grades}
 
 
+def _assistant_text(history: list) -> str:
+    """Everything the bot already said in this conversation."""
+    parts = []
+    for item in history or []:
+        if isinstance(item, dict) and item.get("role") == "assistant":
+            parts.append(str(item.get("content") or ""))
+        elif isinstance(item, (list, tuple)) and len(item) > 1 and item[1]:
+            parts.append(str(item[1]))
+    return "\n".join(parts)
+
+
 def _user_messages(history: list) -> list[str]:
     """Earlier user messages, newest first. Works with both Gradio history formats."""
     messages = []
@@ -218,14 +229,22 @@ def calculate(grade: float, branch: str, times: list[str], wanted: list[dict], e
 
     parts = [f"📊 حاسبة القبول، {UNIVERSITY_NAME}", f"معدلك: {_grade_text(grade)} | فرعك: {BRANCH_NAMES[branch]}"]
     if elsewhere:
-        parts += ["", not_offered(elsewhere, grade, branch), "", "وهذه الأقسام المتاحة لك في جامعتنا:"]
+        parts += ["", not_offered(elsewhere, grade, branch)]
     if yes:
         parts += ["", f"✅ يحق لك التقديم في {UNIVERSITY_NAME} على:"] + yes
     if near:
         parts += ["", "❌ لا يكفي معدلك لـ:"] + near
     not_for_branch = [d["department"] for d in wanted if branch not in d["branches"]]
     if not yes and not near and not not_for_branch:
-        parts += ["", f"لا يوجد في {UNIVERSITY_NAME} قسم يقبل هذا المعدل والفرع حالياً."]
+        closest = sorted(
+            ((m, d, t) for d in DEPARTMENTS for t in times if (m := _minimum(d, t, branch)) is not None),
+            key=lambda x: x[0],
+        )[:3]
+        if closest:
+            parts += ["", f"معدلك أقل من الحد الأدنى لكل الأقسام التي تقبل فرع {BRANCH_NAMES[branch]} في {UNIVERSITY_NAME}. أقربها لك:"]
+            parts += [f"• {d['department']} ({t}): الحد الأدنى {_grade_text(m)}، ينقصك {_grade_text(m - grade)}" for m, d, t in closest]
+        else:
+            parts += ["", f"لا يوجد في {UNIVERSITY_NAME} قسم يقبل فرع {BRANCH_NAMES[branch]}."]
     if not_for_branch:
         parts += ["", f"⚠️ لا يقبل فرع {BRANCH_NAMES[branch]} في: " + "، ".join(not_for_branch)]
     parts += ["", "💡 اسألني عن التخفيضات المتاحة في الأجور."]
@@ -248,6 +267,8 @@ def handle(message: str, history: list) -> str | None:
         times = times or before["times"]
         if not wanted and not elsewhere:
             wanted, elsewhere = before["wanted"], before["elsewhere"]
+    if elsewhere and not now["elsewhere"] and f"{_short_name(elsewhere[0])} غير موجود" in _assistant_text(history):
+        elsewhere = []  # already told the student, do not repeat it
     if grade is None:
         return None  # a branch alone, with no grade anywhere: let the normal search answer
     if branch is None:
