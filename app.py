@@ -53,6 +53,28 @@ def limit_message(visitor: str) -> str | None:
     return None
 
 
+# Suggested next questions, shown as buttons under answers (3 at a time, never one already asked).
+CALCULATOR_BUTTON = "اعرف الأقسام المتاحة لمعدلي"
+SUGGESTIONS = [
+    "ما هي التخفيضات؟",
+    "ما الوثائق المطلوبة للتسجيل؟",
+    CALCULATOR_BUTTON,
+    "ما الأقسام الموجودة في الجامعة؟",
+    "أين تقع الجامعة؟",
+    "كم أجور الدراسة؟",
+]
+
+
+def next_suggestions(history: list, message: str, skip: tuple[str, ...] = ()) -> list[str]:
+    asked = {message.strip(), *skip}
+    for item in history or []:
+        if isinstance(item, dict) and item.get("role") == "user":
+            asked.add(str(item.get("content", "")).strip())
+    used_calculator = any("حاسبة القبول" in str(i.get("content", "")) for i in history or [] if isinstance(i, dict))
+    pool = [q for q in SUGGESTIONS if q not in asked and not (q == CALCULATOR_BUTTON and used_calculator)]
+    return pool[:3]
+
+
 def with_buttons(text: str, buttons: list[str]) -> gr.ChatMessage:
     """An answer with clickable follow-up questions under it, like ChatGPT's suggestions."""
     return gr.ChatMessage(role="assistant", content=text, options=[{"value": b} for b in buttons])
@@ -70,11 +92,16 @@ def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessa
     visitor_questions[visitor] += 1
     today["count"] += 1
 
+    if message == CALCULATOR_BUTTON:
+        text = "اكتب معدلك وفرعك في رسالة واحدة، مثل: معدلي 62 علمي"
+        save_to_archive(visitor, message, text, "calculator")
+        return text
+
     calculator = eligibility.handle(message, history)
     if calculator:
         text, buttons = calculator
         save_to_archive(visitor, message, text, "calculator")
-        return with_buttons(text, buttons)
+        return with_buttons(text, buttons or next_suggestions(history, message, skip=(CALCULATOR_BUTTON,)))
 
     try:
         result = rag.answer(message)
@@ -87,7 +114,7 @@ def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessa
     # The searched pages are printed in the terminal only, to help with testing.
     print(f"[searched] university info: {result['used_university_info']} | guide pages: {result['pages']} | {result['provider']}")
     save_to_archive(visitor, message, result["answer"], f"search/{result['provider']}")
-    return result["answer"]
+    return with_buttons(result["answer"], next_suggestions(history, message))
 
 
 with gr.Blocks(title="مساعد القبول - الجامعة الإسلامية فرع بابل") as demo:

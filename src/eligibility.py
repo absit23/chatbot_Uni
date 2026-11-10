@@ -23,8 +23,6 @@ GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات",
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
 NOT_A_GRADE_WORDS = {"تخفيض", "تخفيضات", "خصم", "ص", "صفحه", "نسبه"}
 GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كليه", "اسلاميه", "جامعه", "طبيه", "تربيه", "اداب", "دراسات", "دراسه"}
-# Follow-up questions shown as buttons under the answer. Clicking one sends it as a message.
-NEXT_QUESTIONS = ["ما هي التخفيضات؟", "ما الوثائق المطلوبة للتسجيل؟", "أين تقع الجامعة؟"]
 BRANCH_BUTTONS = ["علمي", "إحيائي", "تطبيقي", "أدبي", "مهني"]
 NEAR_MISS = 5  # also show departments the student misses by up to this many marks
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
@@ -278,4 +276,4 @@ def handle(message: str, history: list) -> tuple[str, list[str]] | None:
         if elsewhere:
             return not_offered(elsewhere, grade, None) + "\n\n" + ask, BRANCH_BUTTONS
         return f"معدلك {_grade_text(grade)}. {ask}", BRANCH_BUTTONS
-    return calculate(grade, branch, times, wanted, elsewhere), NEXT_QUESTIONS
+    return calculate(grade, branch, times, wanted, elsewhere), []
