@@ -37,11 +37,24 @@ def split_page(text: str) -> list[str]:
     return chunks
 
 
+PAGE_JOIN = 400  # characters borrowed from the neighbouring pages
+
+
 def build_chunks(pages: list[dict]) -> list[dict]:
-    """Each chunk remembers its page, so answers can cite their source."""
+    """Each chunk remembers its page, so answers can cite their source.
+
+    A list or table often starts at the bottom of one page and continues on
+    the next (the required documents start on page 19 and are listed on 20).
+    So each page also gets the end of the previous page and the start of the
+    next one, and a question about the heading also finds the list under it.
+    """
+    pages = sorted(pages, key=lambda p: p["page"])
     chunks = []
-    for page in pages:
-        for number, text in enumerate(split_page(page["text"])):
+    for index, page in enumerate(pages):
+        before = pages[index - 1]["text"][-PAGE_JOIN:] if index > 0 else ""
+        after = pages[index + 1]["text"][:PAGE_JOIN] if index + 1 < len(pages) else ""
+        joined = "\n".join(part for part in (before, page["text"], after) if part)
+        for number, text in enumerate(split_page(joined)):
             if len(text) >= 30:  # skip page headers and empty scraps
                 chunks.append({"id": f"p{page['page']}-{number}", "text": text, "page": page["page"], "source": "guide"})
     return chunks
