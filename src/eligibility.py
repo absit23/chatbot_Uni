@@ -23,6 +23,7 @@ GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات",
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
 NOT_A_GRADE_WORDS = {"تخفيض", "تخفيضات", "خصم", "ص", "صفحه", "نسبه"}
 GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كليه", "اسلاميه", "جامعه", "طبيه", "تربيه", "اداب", "دراسات", "دراسه"}
+DISCOUNT_TIP = "💡 اسألني عن التخفيضات المتاحة في الأجور."
 NEAR_MISS = 5  # also show departments the student misses by up to this many marks
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 
@@ -247,7 +248,7 @@ def calculate(grade: float, branch: str, times: list[str], wanted: list[dict], e
             parts += ["", f"لا يوجد في {UNIVERSITY_NAME} قسم يقبل فرع {BRANCH_NAMES[branch]}."]
     if not_for_branch:
         parts += ["", f"⚠️ لا يقبل فرع {BRANCH_NAMES[branch]} في: " + "، ".join(not_for_branch)]
-    parts += ["", "💡 اسألني عن التخفيضات المتاحة في الأجور."]
+    parts += ["", DISCOUNT_TIP]
     return "\n".join(parts)
 
 
@@ -278,4 +279,7 @@ def handle(message: str, history: list) -> str | None:
                 f"وسأعرض لك الأقسام المتاحة لك في {UNIVERSITY_NAME}."
             )
         return f"معدلك {_grade_text(grade)}. ما هو فرعك في السادس الإعدادي؟ (علمي، إحيائي، تطبيقي، أدبي، مهني)\nاكتب فرعك وسأعرض لك فوراً كل الأقسام المتاحة لك في {UNIVERSITY_NAME}."
-    return calculate(grade, branch, times, wanted, elsewhere)
+    reply = calculate(grade, branch, times, wanted, elsewhere)
+    if DISCOUNT_TIP in _assistant_text(history):  # the tip is shown once per conversation
+        reply = reply.replace("\n\n" + DISCOUNT_TIP, "")
+    return reply
