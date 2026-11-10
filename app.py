@@ -62,12 +62,10 @@ def chat(message: str, history: list, request: gr.Request) -> str:
         print(f"[all providers failed] {error}")
         return "عذراً، الخدمة مشغولة حالياً. حاول بعد دقيقة."
 
-    sources = []
-    if result["used_university_info"]:
-        sources.append("معلومات الجامعة")
-    if result["pages"]:
-        sources.append("صفحات الدليل الوزاري: " + "، ".join(str(p) for p in result["pages"]))
-    return f"{result['answer']}\n\n---\n📄 المصادر التي تم البحث فيها: " + " | ".join(sources)
+    # The answer already cites its source inline, e.g. (ص 50) or (معلومات الجامعة).
+    # The searched pages are printed in the terminal only, to help with testing.
+    print(f"[searched] university info: {result['used_university_info']} | guide pages: {result['pages']} | {result['provider']}")
+    return result["answer"]
 
 
 with gr.Blocks(title="مساعد القبول - الجامعة الإسلامية فرع بابل") as demo:
