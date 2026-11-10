@@ -10,7 +10,7 @@ import shutil
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-from config import CHUNK_OVERLAP, CHUNK_SIZE, CLEAN_PAGES_FILE, COLLECTION, DB_DIR, EMBED_MODEL, PAGES_FILE
+from config import CHUNK_OVERLAP, CHUNK_SIZE, CLEAN_PAGES_FILE, COLLECTION, DB_DIR, EMBED_MODEL, PAGES_FILE, UNIVERSITY_INFO_FILE
 
 
 def load_pages() -> list[dict]:
@@ -43,15 +43,25 @@ def build_chunks(pages: list[dict]) -> list[dict]:
     for page in pages:
         for number, text in enumerate(split_page(page["text"])):
             if len(text) >= 30:  # skip page headers and empty scraps
-                chunks.append({"id": f"p{page['page']}-{number}", "text": text, "page": page["page"]})
+                chunks.append({"id": f"p{page['page']}-{number}", "text": text, "page": page["page"], "source": "guide"})
     return chunks
+
+
+def build_university_chunks() -> list[dict]:
+    """Your university's info file: every '# heading' section becomes one chunk."""
+    text = UNIVERSITY_INFO_FILE.read_text(encoding="utf-8")
+    sections = [s.strip() for s in re.split(r"(?m)^# ", text) if s.strip()]
+    return [
+        {"id": f"u{number}", "text": section, "page": 0, "source": "university"}
+        for number, section in enumerate(sections)
+    ]
 
 
 def main():
     if PAGES_FILE != CLEAN_PAGES_FILE:
         print("WARNING: using the rough OCR text. Scores and dates may be WRONG.")
         print("Run: python src/transcribe_guide.py   before showing this to anyone.")
-    chunks = build_chunks(load_pages())
+    chunks = build_chunks(load_pages()) + build_university_chunks()
     print(f"{len(chunks)} chunks. Creating embeddings with {EMBED_MODEL} (a few minutes)...")
 
     model = SentenceTransformer(EMBED_MODEL)
@@ -67,7 +77,7 @@ def main():
         ids=[c["id"] for c in chunks],
         documents=[c["text"] for c in chunks],
         embeddings=vectors,
-        metadatas=[{"page": c["page"]} for c in chunks],
+        metadatas=[{"page": c["page"], "source": c["source"]} for c in chunks],
     )
     print(f"Done. Saved to {DB_DIR}")
 

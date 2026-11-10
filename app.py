@@ -8,6 +8,7 @@ import gradio as gr
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+import eligibility  # noqa: E402
 import rag  # noqa: E402
 from config import MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
@@ -18,9 +19,10 @@ textarea { direction: rtl; text-align: right; }
 """
 
 EXAMPLES = [
+    "معدلي 60 فرع علمي، ما الأقسام المتاحة لي؟",
+    "كم أجور قسم القانون؟",
+    "ما التخفيضات للإخوة؟",
     "ما هي الوثائق المطلوبة للتسجيل؟",
-    "ما هو الحد الأدنى للقبول في كلية الصيدلة؟",
-    "متى يُلغى قبول الطالب؟",
 ]
 
 # These counters live in memory and reset when the app restarts.
@@ -50,21 +52,29 @@ def chat(message: str, history: list, request: gr.Request) -> str:
     visitor_questions[visitor] += 1
     today["count"] += 1
 
+    calculator_answer = eligibility.handle(message, history)
+    if calculator_answer:
+        return calculator_answer
+
     try:
         result = rag.answer(message)
     except NoProviderAvailable as error:
         print(f"[all providers failed] {error}")
         return "عذراً، الخدمة مشغولة حالياً. حاول بعد دقيقة."
 
-    pages = "، ".join(str(p) for p in result["pages"])
-    return f"{result['answer']}\n\n---\n📄 الصفحات التي تم البحث فيها: {pages}"
+    sources = []
+    if result["used_university_info"]:
+        sources.append("معلومات الجامعة")
+    if result["pages"]:
+        sources.append("صفحات الدليل الوزاري: " + "، ".join(str(p) for p in result["pages"]))
+    return f"{result['answer']}\n\n---\n📄 المصادر التي تم البحث فيها: " + " | ".join(sources)
 
 
-with gr.Blocks(title="مساعد القبول الجامعي") as demo:
+with gr.Blocks(title="مساعد القبول - الجامعة الإسلامية فرع بابل") as demo:
     gr.HTML(f"<style>{CSS}</style>")
     gr.Markdown(
-        "<div dir='rtl' align='center'><h2>مساعد القبول في الجامعات الأهلية 2026-2027</h2>"
-        "يجيب من الدليل الإرشادي الرسمي ويذكر الصفحة. تأكد من المعلومات المهمة من الدليل نفسه.</div>"
+        "<div dir='rtl' align='center'><h2>مساعد القبول، الجامعة الإسلامية فرع بابل 2026-2027</h2>"
+        "اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن الأجور والتخفيضات وشروط التقديم.</div>"
     )
     gr.ChatInterface(fn=chat, examples=EXAMPLES, cache_examples=False)
 

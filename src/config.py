@@ -14,8 +14,15 @@ PDF_FILE = ROOT / "data" / "guide.pdf"
 CLEAN_PAGES_FILE = ROOT / "data" / "guide_pages.jsonl"
 OCR_PAGES_FILE = ROOT / "data" / "guide_pages_ocr.jsonl"
 PAGES_FILE = CLEAN_PAGES_FILE if CLEAN_PAGES_FILE.exists() else OCR_PAGES_FILE
-ASSISTANT_ROLE = "مساعد للإجابة عن أسئلة التقديم والقبول في الجامعات والكليات الأهلية العراقية للسنة الدراسية 2026-2027"
+UNIVERSITY_NAME = "الجامعة الإسلامية - فرع بابل"
+ADMISSION_CONTACT = "شعبة التسجيل والقبول في الجامعة الإسلامية فرع بابل: 07726018188 - 7535"
+ASSISTANT_ROLE = f"مساعد القبول في {UNIVERSITY_NAME}، يجيب عن أسئلة التقديم والقبول والأجور للسنة الدراسية 2026-2027"
 DOCUMENT_NAME = "الدليل الإرشادي للتقديم وضوابط القبول 2026-2027"
+
+# Your university's own data (confirmed from its 2026-2027 admission poster)
+UNIVERSITY_DIR = ROOT / "data" / "university"
+DEPARTMENTS_FILE = UNIVERSITY_DIR / "departments.csv"   # used by the eligibility calculator
+UNIVERSITY_INFO_FILE = UNIVERSITY_DIR / "info.md"      # searched like the guide's pages
 
 # The PDF's first page is the cover, so printed page number = PDF page - 1.
 PRINTED_PAGE_OFFSET = 1
@@ -29,7 +36,8 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-m3")
 CHUNK_SIZE = 900        # characters in one chunk
 CHUNK_OVERLAP = 150     # characters shared with the next chunk
 CANDIDATES = 15         # how many chunks each search method returns
-TOP_K = 6               # how many chunks the LLM finally reads
+TOP_K = 7               # how many chunks the LLM finally reads
+UNIVERSITY_K = 2        # of those, how many always come from the university file
 
 # --- The brain ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
