@@ -21,6 +21,8 @@ BRANCHES = {
 BRANCH_NAMES = {"علمي": "علمي", "احيائي": "إحيائي", "تطبيقي": "تطبيقي", "ادبي": "أدبي", "مهني": "مهني"}
 GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات", "مجموعي", "حصلت", "جبت", "جايب"}
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
+# Words that mean "use the grade I already gave you" in a follow-up like "ماذا يقبل معدلي ايضا؟"
+FOLLOW_UP_WORDS = GRADE_WORDS | {"يقبل", "يقبلني", "يقبلوني", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "متاح", "متاحه", "ايضا", "غيرها"}
 NOT_A_GRADE_WORDS = {"تخفيض", "تخفيضات", "خصم", "ص", "صفحه", "نسبه"}
 GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كليه", "اسلاميه", "جامعه", "طبيه", "تربيه", "اداب", "دراسات", "دراسه"}
 BRANCH_BUTTONS = ["علمي", "إحيائي", "تطبيقي", "أدبي", "مهني"]
@@ -136,8 +138,9 @@ def _read(text: str) -> dict:
         elsewhere = [r for r in GUIDE_ROWS if best and guide_overlap[id(r)] == best]
     about_grades = (bool(words & (GRADE_WORDS | QUESTION_WORDS)) or branch is not None or grade is not None) \
         and not (words & NOT_A_GRADE_WORDS) and "%" not in text
+    follow_up = bool(words & FOLLOW_UP_WORDS) and not (words & NOT_A_GRADE_WORDS)
     return {"grade": grade, "branch": branch, "times": times, "wanted": wanted,
-            "elsewhere": elsewhere, "about_grades": about_grades}
+            "elsewhere": elsewhere, "about_grades": about_grades, "follow_up": follow_up}
 
 
 def _assistant_text(history: list) -> str:
@@ -253,19 +256,21 @@ def calculate(grade: float, branch: str, times: list[str], wanted: list[dict], e
 def handle(message: str, history: list) -> tuple[str, list[str]] | None:
     """Return (answer, follow-up buttons) for grade questions, or None for normal search."""
     now = _read(message)
-    if now["grade"] is None and now["branch"] is None:
+    if now["grade"] is None and now["branch"] is None and not now["follow_up"]:
         return None
     if now["grade"] is not None and not now["about_grades"]:
         return None  # a number, but probably not a grade question
 
     grade, branch, times, wanted, elsewhere = now["grade"], now["branch"], now["times"], now["wanted"], now["elsewhere"]
-    for old in _user_messages(history):  # fill gaps from earlier messages
+    # Is this message only the answer to "what is your branch?" (e.g. "علمي")?
+    answering_branch = now["branch"] and now["grade"] is None and not (now["wanted"] or now["elsewhere"] or now["times"])
+    for old in _user_messages(history):  # fill gaps from earlier messages, newest first
         before = _read(old)
-        grade = grade if grade is not None else before["grade"]
+        if grade is None and before["grade"] is not None:
+            grade = before["grade"]
+            if answering_branch:  # keep what that grade question was about
+                times, wanted, elsewhere = before["times"], before["wanted"], before["elsewhere"]
         branch = branch or before["branch"]
-        times = times or before["times"]
-        if not wanted and not elsewhere:
-            wanted, elsewhere = before["wanted"], before["elsewhere"]
     if elsewhere and not now["elsewhere"] and f"{_short_name(elsewhere[0])} غير موجود" in _assistant_text(history):
         elsewhere = []  # already told the student, do not repeat it
     if grade is None:

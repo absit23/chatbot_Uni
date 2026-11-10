@@ -105,7 +105,8 @@ def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessa
         return with_buttons(text, buttons or next_suggestions(history, message, skip=(CALCULATOR_BUTTON,)))
 
     try:
-        result = rag.answer(message)
+        previous = [text_of(i.get("content")) for i in history or [] if isinstance(i, dict) and i.get("role") == "user"]
+        result = rag.answer(message, previous[-1] if previous else "")
     except NoProviderAvailable as error:
         print(f"[all providers failed] {error}")
         save_to_archive(visitor, message, "", "failed")

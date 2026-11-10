@@ -88,10 +88,15 @@ def _label(chunk: dict) -> str:
     return f"[من الدليل الوزاري، صفحة {chunk['page']}]"
 
 
-def answer(question: str) -> dict:
-    chunks = retrieve(question)
+def answer(question: str, previous_question: str = "") -> dict:
+    """previous_question helps short follow-ups like "كم أجوره؟" know what "it" is."""
+    search_text = question
+    if previous_question and len(tokenize(question)) <= 4:
+        search_text = f"{previous_question} {question}"
+    chunks = retrieve(search_text)
     context = "\n\n".join(f"{_label(c)}\n{c['text']}" for c in chunks)
-    prompt = f"المعلومات:\n{context}\n\nالسؤال: {question}"
+    earlier = f"السؤال السابق للمستخدم (للسياق فقط): {previous_question}\n" if previous_question else ""
+    prompt = f"المعلومات:\n{context}\n\n{earlier}السؤال: {question}"
     text, provider = llm.ask(SYSTEM_PROMPT, prompt)
     return {
         "answer": text,
