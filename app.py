@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import eligibility  # noqa: E402
 import rag  # noqa: E402
-from config import MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
+from config import LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
 
 CSS = """
@@ -78,4 +78,8 @@ with gr.Blocks(title="مساعد القبول - الجامعة الإسلامي�
     gr.ChatInterface(fn=chat, examples=EXAMPLES, cache_examples=False)
 
 if __name__ == "__main__":
-    demo.queue(default_concurrency_limit=3).launch(share=SHARE)
+    if LOCAL_NETWORK:
+        print("Phones on the same Wi-Fi: open http://<this laptop's IPv4 address>:7860  (find it with: ipconfig)")
+    demo.queue(default_concurrency_limit=3).launch(
+        share=SHARE, server_name="0.0.0.0" if LOCAL_NETWORK else "127.0.0.1", server_port=7860
+    )

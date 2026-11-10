@@ -47,5 +47,7 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
 # --- The website ---
 SHARE = os.getenv("SHARE", "true").lower() == "true"
+# true = phones on the same Wi-Fi can open http://<this laptop's IP>:7860
+LOCAL_NETWORK = os.getenv("LOCAL_NETWORK", "true").lower() == "true"
 MAX_QUESTIONS_PER_VISITOR = int(os.getenv("MAX_QUESTIONS_PER_VISITOR", "15"))
 MAX_QUESTIONS_PER_DAY = int(os.getenv("MAX_QUESTIONS_PER_DAY", "400"))
