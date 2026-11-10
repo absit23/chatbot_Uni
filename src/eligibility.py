@@ -23,7 +23,9 @@ GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات",
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
 NOT_A_GRADE_WORDS = {"تخفيض", "تخفيضات", "خصم", "ص", "صفحه", "نسبه"}
 GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كليه", "اسلاميه", "جامعه", "طبيه", "تربيه", "اداب", "دراسات", "دراسه"}
-DISCOUNT_TIP = "💡 اسألني عن التخفيضات المتاحة في الأجور."
+# Follow-up questions shown as buttons under the answer. Clicking one sends it as a message.
+NEXT_QUESTIONS = ["ما هي التخفيضات؟", "ما الوثائق المطلوبة للتسجيل؟", "أين تقع الجامعة؟"]
+BRANCH_BUTTONS = ["علمي", "إحيائي", "تطبيقي", "أدبي", "مهني"]
 NEAR_MISS = 5  # also show departments the student misses by up to this many marks
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 
@@ -248,12 +250,11 @@ def calculate(grade: float, branch: str, times: list[str], wanted: list[dict], e
             parts += ["", f"لا يوجد في {UNIVERSITY_NAME} قسم يقبل فرع {BRANCH_NAMES[branch]}."]
     if not_for_branch:
         parts += ["", f"⚠️ لا يقبل فرع {BRANCH_NAMES[branch]} في: " + "، ".join(not_for_branch)]
-    parts += ["", DISCOUNT_TIP]
     return "\n".join(parts)
 
 
-def handle(message: str, history: list) -> str | None:
-    """Return a calculator answer, a question asking for the branch, or None."""
+def handle(message: str, history: list) -> tuple[str, list[str]] | None:
+    """Return (answer, follow-up buttons) for grade questions, or None for normal search."""
     now = _read(message)
     if now["grade"] is None and now["branch"] is None:
         return None
@@ -273,13 +274,8 @@ def handle(message: str, history: list) -> str | None:
     if grade is None:
         return None  # a branch alone, with no grade anywhere: let the normal search answer
     if branch is None:
+        ask = f"ما هو فرعك في السادس الإعدادي؟ اختر من الأزرار، وسأعرض لك فوراً كل الأقسام المتاحة لك في {UNIVERSITY_NAME}."
         if elsewhere:
-            return not_offered(elsewhere, grade, None) + (
-                f"\n\nاكتب فرعك في السادس الإعدادي (علمي، إحيائي، تطبيقي، أدبي، مهني) "
-                f"وسأعرض لك الأقسام المتاحة لك في {UNIVERSITY_NAME}."
-            )
-        return f"معدلك {_grade_text(grade)}. ما هو فرعك في السادس الإعدادي؟ (علمي، إحيائي، تطبيقي، أدبي، مهني)\nاكتب فرعك وسأعرض لك فوراً كل الأقسام المتاحة لك في {UNIVERSITY_NAME}."
-    reply = calculate(grade, branch, times, wanted, elsewhere)
-    if DISCOUNT_TIP in _assistant_text(history):  # the tip is shown once per conversation
-        reply = reply.replace("\n\n" + DISCOUNT_TIP, "")
-    return reply
+            return not_offered(elsewhere, grade, None) + "\n\n" + ask, BRANCH_BUTTONS
+        return f"معدلك {_grade_text(grade)}. {ask}", BRANCH_BUTTONS
+    return calculate(grade, branch, times, wanted, elsewhere), NEXT_QUESTIONS

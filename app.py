@@ -53,7 +53,12 @@ def limit_message(visitor: str) -> str | None:
     return None
 
 
-def chat(message: str, history: list, request: gr.Request) -> str:
+def with_buttons(text: str, buttons: list[str]) -> gr.ChatMessage:
+    """An answer with clickable follow-up questions under it, like ChatGPT's suggestions."""
+    return gr.ChatMessage(role="assistant", content=text, options=[{"value": b} for b in buttons])
+
+
+def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessage:
     message = (message or "").strip()[:1000]
     if not message:
         return "اكتب سؤالك من فضلك."
@@ -65,10 +70,11 @@ def chat(message: str, history: list, request: gr.Request) -> str:
     visitor_questions[visitor] += 1
     today["count"] += 1
 
-    calculator_answer = eligibility.handle(message, history)
-    if calculator_answer:
-        save_to_archive(visitor, message, calculator_answer, "calculator")
-        return calculator_answer
+    calculator = eligibility.handle(message, history)
+    if calculator:
+        text, buttons = calculator
+        save_to_archive(visitor, message, text, "calculator")
+        return with_buttons(text, buttons)
 
     try:
         result = rag.answer(message)
