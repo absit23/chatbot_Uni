@@ -27,6 +27,9 @@ UNIVERSITY_INFO_FILE = UNIVERSITY_DIR / "info.md"      # searched like the guide
 # The PDF's first page is the cover, so printed page number = PDF page - 1.
 PRINTED_PAGE_OFFSET = 1
 
+# Every question and answer is saved here, without names, to review and improve the bot.
+CHAT_LOG_FILE = ROOT / "logs" / "chats.jsonl"
+
 # --- The vector database ---
 DB_DIR = ROOT / "db"
 COLLECTION = "guide"

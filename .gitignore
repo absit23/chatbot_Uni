@@ -4,6 +4,9 @@
 # Built by src/ingest.py, can be recreated at any time
 db/
 
+# Chat archive: visitors' questions stay on this laptop only
+logs/
+
 # Python
 __pycache__/
 *.pyc
