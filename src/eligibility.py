@@ -9,7 +9,7 @@ the grade from earlier in the conversation.
 import csv
 import re
 
-from config import ADMISSION_CONTACT, DEPARTMENTS_FILE, UNIVERSITY_NAME
+from config import DEPARTMENTS_FILE, UNIVERSITY_NAME
 from textutils import normalize, tokenize
 
 BRANCHES = {
@@ -19,6 +19,7 @@ BRANCHES = {
 BRANCH_NAMES = {"علمي": "علمي", "احيائي": "إحيائي", "تطبيقي": "تطبيقي", "ادبي": "أدبي", "مهني": "مهني"}
 GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات", "مجموعي", "حصلت", "جبت", "جايب"}
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
+NOT_A_GRADE_WORDS = {"تخفيض", "تخفيضات", "خصم", "ص", "صفحه", "نسبه"}
 GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كليه", "اسلاميه", "جامعه"}
 NEAR_MISS = 5  # also show departments the student misses by up to this many marks
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
@@ -56,7 +57,8 @@ def _read(text: str) -> dict:
     overlap = {id(d): len(d["name_words"] & words) for d in DEPARTMENTS}
     best = max(overlap.values())
     wanted = [d for d in DEPARTMENTS if best and overlap[id(d)] == best]
-    about_grades = bool(words & (GRADE_WORDS | QUESTION_WORDS)) or branch is not None
+    about_grades = (bool(words & (GRADE_WORDS | QUESTION_WORDS)) or branch is not None or grade is not None) \
+        and not (words & NOT_A_GRADE_WORDS) and "%" not in text
     return {"grade": grade, "branch": branch, "times": times, "wanted": wanted, "about_grades": about_grades}
 
 
@@ -108,19 +110,15 @@ def calculate(grade: float, branch: str, times: list[str], wanted: list[dict]) -
 
     parts = [f"📊 حاسبة القبول، {UNIVERSITY_NAME}", f"معدلك: {_grade_text(grade)} | فرعك: {BRANCH_NAMES[branch]}"]
     if yes:
-        parts += ["", "✅ يحق لك التقديم على:"] + yes
+        parts += ["", f"✅ يحق لك التقديم في {UNIVERSITY_NAME} على:"] + yes
     if near:
         parts += ["", "❌ لا يكفي معدلك لـ:"] + near
     not_for_branch = [d["department"] for d in wanted if branch not in d["branches"]]
     if not yes and not near and not not_for_branch:
-        parts += ["", "لم أجد قسماً في جامعتنا يناسب هذا المعدل والفرع."]
+        parts += ["", f"لا يوجد في {UNIVERSITY_NAME} قسم يقبل هذا المعدل والفرع حالياً."]
     if not_for_branch:
         parts += ["", f"⚠️ لا يقبل فرع {BRANCH_NAMES[branch]} في: " + "، ".join(not_for_branch)]
-    parts += [
-        "",
-        "💡 قد تحصل على تخفيض في الأجور، اسألني عن التخفيضات.",
-        f"الحد الأدنى يعني أنه يحق لك التقديم، ولا يعني ضمان القبول. للتأكد: {ADMISSION_CONTACT}",
-    ]
+    parts += ["", "💡 اسألني عن التخفيضات المتاحة في الأجور."]
     return "\n".join(parts)
 
 
@@ -142,5 +140,5 @@ def handle(message: str, history: list) -> str | None:
     if grade is None:
         return None  # a branch alone, with no grade anywhere: let the normal search answer
     if branch is None:
-        return f"معدلك {_grade_text(grade)}. ما هو فرعك في السادس الإعدادي؟ (علمي، إحيائي، تطبيقي، أدبي، مهني)"
+        return f"معدلك {_grade_text(grade)}. ما هو فرعك في السادس الإعدادي؟ (علمي، إحيائي، تطبيقي، أدبي، مهني)\nاكتب فرعك وسأعرض لك فوراً كل الأقسام المتاحة لك في {UNIVERSITY_NAME}."
     return calculate(grade, branch, times, wanted)
