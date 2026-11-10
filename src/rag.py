@@ -90,10 +90,14 @@ def _label(chunk: dict) -> str:
 
 def answer(question: str, previous_question: str = "") -> dict:
     """previous_question helps short follow-ups like "كم أجوره؟" know what "it" is."""
-    search_text = question
+    # Always search with the question itself, so a new topic ("ما هي التخفيضات؟")
+    # is never drowned out by the previous one. For short follow-ups, also add a
+    # few chunks found together with the previous question.
+    chunks = retrieve(question)
     if previous_question and len(tokenize(question)) <= 4:
-        search_text = f"{previous_question} {question}"
-    chunks = retrieve(search_text)
+        seen = {c["id"] for c in chunks}
+        extra = [c for c in retrieve(f"{previous_question} {question}") if c["id"] not in seen]
+        chunks += extra[:3]
     context = "\n\n".join(f"{_label(c)}\n{c['text']}" for c in chunks)
     earlier = f"السؤال السابق للمستخدم (للسياق فقط): {previous_question}\n" if previous_question else ""
     prompt = f"المعلومات:\n{context}\n\n{earlier}السؤال: {question}"
