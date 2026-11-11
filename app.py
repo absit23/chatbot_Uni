@@ -157,6 +157,12 @@ STYLE = {
          (typing, buttons, examples, retry). Visitors see "searching…" instead. */
       .progress-text, .meta-text, .meta-text-center, .eta-bar, .timer,
       .wrap.minimal .progress-text { display: none !important; }
+      /* Gradio's loading cover hides the whole chat with a white layer while
+         it waits. Never show it: the conversation stays visible and the
+         "searching…" message tells the visitor the bot is working. */
+      #chat .wrap.default, #chat .wrap.translucent, #chat .wrap.generating {
+        display: none !important;
+      }
       @media (max-width: 560px) {
         .gradio-container.gradio-container { padding: 6px 2px 2px !important; }
         .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
