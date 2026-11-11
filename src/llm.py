@@ -27,7 +27,7 @@ def _ask_gemini(system: str, prompt: str, model: str, timeout: int = TIMEOUT_SEC
     response = client.models.generate_content(
         model=model,
         contents=prompt,
-        config=types.GenerateContentConfig(system_instruction=system, temperature=0.1),
+        config=types.GenerateContentConfig(system_instruction=system, temperature=0.4),
     )
     if not response.text:
         raise RuntimeError("Gemini returned an empty answer")
@@ -39,7 +39,7 @@ def _ask_groq(system: str, prompt: str) -> str:
     response = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-        temperature=0.1,
+        temperature=0.4,
     )
     return response.choices[0].message.content
 
