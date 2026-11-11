@@ -294,3 +294,6 @@ body, gradio-app, .gradio-container { background: var(--ivory) !important; }
 #quick-list .quick button span, #quick-list .quick button { min-width: 0; }
 /* Arabic reads right to left, so the send arrow points left */
 #ask button svg { transform: scaleX(-1); }
+/* Send button on the right (where Arabic text starts), as requested */
+#ask .input-container { flex-direction: row !important; }
+#ask .input-container > .submit-button, #ask .input-container > button { order: -1; margin-inline-end: 6px; }
