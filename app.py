@@ -158,6 +158,8 @@ THEME = gr.themes.Soft(
 STYLE = {
     "theme": THEME,
     "css": (ASSETS / "style.css").read_text(encoding="utf-8"),
+    # Arabic text for Gradio's own buttons, whatever language the visitor's browser uses.
+    "i18n": gr.I18n(**{lang: {"chat_interface.new_chat": "محادثة جديدة"} for lang in ("en", "ar")}),
     # Phone margins, added as a plain <style> because Gradio rewrites @media rules in "css".
     "head": """<style>
       /* Never show Gradio's seconds counter or progress bar, on any action
@@ -173,6 +175,8 @@ STYLE = {
       @media (max-width: 560px) {
         .gradio-container.gradio-container { padding: 6px 2px 2px !important; }
         .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
+        /* On phones the saved conversations sit above the chat: keep them short */
+        .row:has(#chat) > .column:not(:has(#chat)) .block { max-height: 110px; overflow-y: auto; }
       }
     </style>""",
     # Always use the light design, even on phones set to dark mode.
@@ -221,6 +225,9 @@ with gr.Blocks(title="المساعد الذكي للقبول - الجامعة ا
         cache_examples=False,
         api_visibility="private",
         show_progress="hidden",  # no seconds counter: a friendly "searching…" message is shown instead
+        # Past conversations are kept in the visitor's own browser (no account, no server)
+        # and listed in a side panel, like ChatGPT.
+        save_history=True,
         chatbot=chatbot,
         textbox=gr.Textbox(
             elem_id="ask", rtl=True, show_label=False, submit_btn=True,

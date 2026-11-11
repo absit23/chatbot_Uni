@@ -190,3 +190,22 @@ button.submit-button, #ask button {
 #chat [class*="message-buttons"] *::before,
 #chat [class*="message-buttons"] *::after { content: none !important; display: none !important; }
 #chat [class*="message-buttons"] button { border-inline: none !important; }
+
+/* ---------- Saved conversations (side panel) ---------- */
+.row:has(#chat) > .column:not(:has(#chat)) { gap: 10px !important; }
+.row:has(#chat) > .column:not(:has(#chat)) button.primary {
+  background: var(--navy) !important; color: #fff !important;
+  border: 1.5px solid var(--gold) !important; border-radius: 14px !important;
+  font-weight: 700 !important; box-shadow: 0 4px 12px rgba(11,35,80,.18);
+}
+.row:has(#chat) > .column:not(:has(#chat)) button.primary:hover { background: var(--navy-2) !important; }
+.row:has(#chat) > .column:not(:has(#chat)) .block {
+  background: #fff !important; border: 1px solid #e8dfc6 !important; border-radius: 16px !important;
+}
+.row:has(#chat) > .column:not(:has(#chat)) table { border-collapse: separate !important; border-spacing: 0 6px !important; }
+.row:has(#chat) > .column:not(:has(#chat)) tr td {
+  background: var(--cream) !important; color: var(--navy) !important;
+  border: 1px solid #ece2c8 !important; border-radius: 10px !important;
+  text-align: right !important; font-weight: 600; cursor: pointer;
+}
+.row:has(#chat) > .column:not(:has(#chat)) tr:hover td { background: var(--gold-soft) !important; }
