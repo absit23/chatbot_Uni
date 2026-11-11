@@ -313,3 +313,12 @@ body, gradio-app, .gradio-container { background: var(--ivory) !important; }
 #uni-header { direction: rtl; }
 #uni-header .titles { text-align: right; }
 #uni-header .year { direction: ltr; margin-inline-start: 0 !important; margin-right: auto !important; }
+
+/* ☰ button: only on phones and tablets (shown by the rules in app.py) */
+#menu-btn {
+  display: none; place-items: center; flex: none;
+  width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,.1); color: #fff; font-size: 20px; line-height: 1;
+  border: 1px solid rgba(201,162,39,.5);
+}
+#menu-btn:hover { background: rgba(255,255,255,.18); }

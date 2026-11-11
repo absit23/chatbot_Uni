@@ -191,8 +191,23 @@ STYLE = {
       @media (max-width: 900px) {
         .gradio-container.gradio-container { padding: 12px 12px 4px !important; }
         #layout { flex-direction: column !important; }
-        #sidebar { order: 2; min-width: 0 !important; }
-        #quick-list, #sidebar .side-title.quick-title { display: none !important; }
+        /* The side panel becomes a drawer that slides in from the right (☰ in the header) */
+        #sidebar {
+          position: fixed !important; top: 0; right: 0; bottom: 0; z-index: 900;
+          width: min(84vw, 330px) !important; min-width: 0 !important; max-width: none !important;
+          padding: 18px 14px !important; overflow-y: auto;
+          background: var(--ivory, #f7f3ea) !important;
+          box-shadow: -12px 0 32px rgba(11,35,80,.18);
+          transform: translateX(105%); transition: transform .28s cubic-bezier(.2,.7,.2,1);
+        }
+        body.drawer-open #sidebar { transform: none; }
+        #drawer-backdrop {
+          position: fixed; inset: 0; z-index: 850; background: rgba(11,35,80,.35);
+          opacity: 0; pointer-events: none; transition: opacity .25s;
+        }
+        body.drawer-open #drawer-backdrop { opacity: 1; pointer-events: auto; }
+        #menu-btn { display: grid !important; }
+        #chat-list .chat-list { max-height: none !important; }
       }
       /* Phones */
       @media (max-width: 560px) {
@@ -200,12 +215,14 @@ STYLE = {
         .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
         #uni-header { padding: 12px 14px !important; gap: 12px !important; border-radius: 18px !important; }
         #uni-header img { width: 50px !important; height: 50px !important; }
-        #uni-header h1 { font-size: 19px !important; }
+        #uni-header h1 { font-size: 17px !important; white-space: nowrap; }
+        #uni-header .eyebrow { font-size: 12px !important; white-space: nowrap; }
+        #uni-header { gap: 10px !important; }
+        #menu-btn { width: 36px !important; height: 36px !important; font-size: 18px !important; }
         #uni-header .english { display: none; }
-        #uni-header .year { padding: 5px 10px !important; font-size: 11.5px !important; }
+        #uni-header .year { padding: 4px 8px !important; font-size: 10.5px !important; }
         #chat .welcome h2 { font-size: 19px !important; }
         #chat .welcome p { font-size: 13.5px !important; }
-        #chat-list .chat-list { max-height: 150px !important; }
         /* Starter questions: compact two-column cards with the icon beside the text */
         #chat .examples { grid-template-columns: 1fr 1fr !important; gap: 8px !important; width: 100% !important; }
         #chat .example { padding: 10px !important; min-height: 0 !important; }
@@ -222,7 +239,22 @@ STYLE = {
         if (url.searchParams.get('__theme') !== 'light') {
             url.searchParams.set('__theme', 'light');
             window.location.replace(url);
+            return;
         }
+        // Phones and tablets: ☰ opens the conversations drawer; choosing anything closes it.
+        if (!document.getElementById('drawer-backdrop')) {
+            const backdrop = document.createElement('div');
+            backdrop.id = 'drawer-backdrop';
+            document.body.appendChild(backdrop);
+        }
+        const close = () => document.body.classList.remove('drawer-open');
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('#menu-btn')) { document.body.classList.toggle('drawer-open'); return; }
+            if (event.target.id === 'drawer-backdrop') { close(); return; }
+            const picked = event.target.closest('#new-chat, #quick-list button, #chat-list .chat-item');
+            const menu = event.target.closest('.chat-dots, .chat-menu');
+            if (picked && !menu) setTimeout(close, 150);
+        });
     }""",
 }
 
@@ -235,6 +267,7 @@ HEADER = f"""
     <div class="english">The Islamic University – Babylon Campus · AI Admission Assistant</div>
   </div>
   <div class="year">2026 – 2027</div>
+  <button id="menu-btn" aria-label="المحادثات والقائمة">☰</button>
 </div>
 """
 NOTE = (
