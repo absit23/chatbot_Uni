@@ -15,7 +15,8 @@ CLEAN_PAGES_FILE = ROOT / "data" / "guide_pages.jsonl"
 OCR_PAGES_FILE = ROOT / "data" / "guide_pages_ocr.jsonl"
 PAGES_FILE = CLEAN_PAGES_FILE if CLEAN_PAGES_FILE.exists() else OCR_PAGES_FILE
 UNIVERSITY_NAME = "الجامعة الإسلامية - فرع بابل"
-ADMISSION_CONTACT = "شعبة التسجيل والقبول في الجامعة الإسلامية فرع بابل: 07726018188 - 7535"
+# \u200e keeps each number left-to-right, so Arabic text cannot reorder or cut it.
+ADMISSION_CONTACT = "شعبة التسجيل والقبول في الجامعة الإسلامية فرع بابل على الرقم \u200e07726018188\u200e أو \u200e7535\u200e"
 ASSISTANT_ROLE = f"مساعد القبول في {UNIVERSITY_NAME}، يجيب عن أسئلة التقديم والقبول والأجور للسنة الدراسية 2026-2027"
 DOCUMENT_NAME = "الدليل الإرشادي للتقديم وضوابط القبول 2026-2027"
 
