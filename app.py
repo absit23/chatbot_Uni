@@ -20,12 +20,26 @@ from textutils import text_of  # noqa: E402
 
 
 
-EXAMPLES = [
-    "معدلي 60 فرع علمي، ما الأقسام المتاحة لي؟",
-    "كم أجور قسم القانون؟",
-    "ما التخفيضات للإخوة؟",
-    "ما هي الوثائق المطلوبة للتسجيل؟",
+ICONS = Path(__file__).parent / "assets" / "icons"
+# (question, short label shown on the card, icon)
+STARTERS = [
+    ("معدلي 62 علمي، ما الأقسام المتاحة لي؟", "ما الأقسام المتاحة لمعدلي؟", "grade"),
+    ("ما الوثائق المطلوبة للتسجيل؟", "الوثائق المطلوبة للتسجيل", "documents"),
+    ("كم أجور الدراسة؟", "أجور الدراسة لكل قسم", "fees"),
+    ("ما الأقسام الموجودة في الجامعة؟", "الأقسام والكليات", "departments"),
+    ("ما هي التخفيضات؟", "التخفيضات في الأجور", "discounts"),
+    ("أين تقع الجامعة؟", "موقع الجامعة والتواصل", "location"),
 ]
+EXAMPLES = [q for q, _, _ in STARTERS]
+
+WELCOME = """
+<div class="welcome">
+  <div class="orb"><span>✦</span></div>
+  <h2>مرحباً بك في المساعد الذكي للقبول</h2>
+  <p>اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن شروط القبول والأجور والتخفيضات
+  والوثائق المطلوبة للتسجيل في الجامعة الإسلامية - فرع بابل.</p>
+</div>
+"""
 
 # These counters live in memory and reset when the app restarts.
 visitor_questions: Counter = Counter()
@@ -91,7 +105,7 @@ def with_buttons(text: str, buttons: list[str]) -> gr.ChatMessage:
 THINKING = gr.ChatMessage(
     role="assistant",
     content="",
-    metadata={"title": "🔎 أبحث لك في معلومات الجامعة والدليل الوزاري…", "status": "pending"},
+    metadata={"title": "المساعد يبحث لك في معلومات الجامعة والدليل الوزاري…", "status": "pending"},
 )
 
 
@@ -154,7 +168,7 @@ LOGO = "data:image/png;base64," + base64.b64encode(LOGO_FILE.read_bytes()).decod
 
 THEME = gr.themes.Soft(
     primary_hue=gr.themes.colors.amber,
-    font=[gr.themes.GoogleFont("Tajawal"), "Segoe UI", "Tahoma", "sans-serif"],
+    font=[gr.themes.GoogleFont("IBM Plex Sans Arabic"), gr.themes.GoogleFont("Tajawal"), "Segoe UI", "sans-serif"],
 )
 STYLE = {
     "theme": THEME,
@@ -163,21 +177,43 @@ STYLE = {
     "i18n": gr.I18n(**{lang: {"chat_interface.new_chat": "محادثة جديدة"} for lang in ("en", "ar")}),
     # Phone margins, added as a plain <style> because Gradio rewrites @media rules in "css".
     "head": """<style>
-      /* Never show Gradio's seconds counter or progress bar, on any action
-         (typing, buttons, examples, retry). Visitors see "searching…" instead. */
+      /* Never show Gradio's seconds counter or loading cover: the "searching…" message replaces them. */
       .progress-text, .meta-text, .meta-text-center, .eta-bar, .timer,
       .wrap.minimal .progress-text { display: none !important; }
-      /* Gradio's loading cover hides the whole chat with a white layer while
-         it waits. Never show it: the conversation stays visible and the
-         "searching…" message tells the visitor the bot is working. */
-      #chat .wrap.default, #chat .wrap.translucent, #chat .wrap.generating {
-        display: none !important;
+      #chat .wrap.default, #chat .wrap.translucent, #chat .wrap.generating { display: none !important; }
+
+      /* The message box floats: no grey band behind it */
+      .form:has(#ask), .styler:has(#ask), .gr-group:has(#ask) {
+        background: transparent !important; border: none !important; box-shadow: none !important;
       }
+
+      /* Tablets */
+      @media (max-width: 900px) {
+        .gradio-container.gradio-container { padding: 12px 12px 4px !important; }
+        #layout { flex-direction: column !important; }
+        #sidebar { order: 2; min-width: 0 !important; }
+        #quick-list, #sidebar .side-title.quick-title { display: none !important; }
+      }
+      /* Phones */
       @media (max-width: 560px) {
         .gradio-container.gradio-container { padding: 6px 2px 2px !important; }
         .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
-        /* On phones the saved conversations sit above the chat: keep them short */
-        #chat-list { max-height: 120px; overflow-y: auto; }
+        #uni-header { padding: 12px 14px !important; gap: 12px !important; border-radius: 18px !important; }
+        #uni-header img { width: 50px !important; height: 50px !important; }
+        #uni-header h1 { font-size: 19px !important; }
+        #uni-header .english { display: none; }
+        #uni-header .year { padding: 5px 10px !important; font-size: 11.5px !important; }
+        #chat .welcome h2 { font-size: 19px !important; }
+        #chat .welcome p { font-size: 13.5px !important; }
+        #chat-list .chat-list { max-height: 150px !important; }
+        /* Starter questions: compact two-column cards with the icon beside the text */
+        #chat .examples { grid-template-columns: 1fr 1fr !important; gap: 8px !important; width: 100% !important; }
+        #chat .example { padding: 10px !important; min-height: 0 !important; }
+        #chat .example-content { flex-direction: row !important; align-items: center !important; gap: 8px !important; }
+        #chat .example-content img { width: 20px !important; height: 20px !important; }
+        #chat .example-content * { font-size: 13px !important; }
+        #chat .welcome { padding-top: 0 !important; }
+        #chat .welcome .orb { width: 52px !important; height: 52px !important; margin-bottom: 10px !important; }
       }
     </style>""",
     # Always use the light design, even on phones set to dark mode.
@@ -198,14 +234,38 @@ HEADER = f"""
     <h1>المساعد الذكي للقبول</h1>
     <div class="english">The Islamic University – Babylon Campus · AI Admission Assistant</div>
   </div>
-  <div class="year">2026 - 2027</div>
+  <div class="year">2026 – 2027</div>
 </div>
-<div id="intro">اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن الأجور والتخفيضات وشروط التقديم.</div>
 """
 NOTE = (
     "<div id='note'>الحد الأدنى يؤهلك للتقديم، والقبول النهائي يخضع للتنافس وضوابط الوزارة. "
     "تُحفظ الأسئلة بدون أسماء لتحسين الخدمة.</div>"
 )
+
+def _svg_data(name: str) -> str:
+    return "data:image/svg+xml;base64," + base64.b64encode((ICONS / f"{name}.svg").read_bytes()).decode()
+
+
+QUICK_LIST = "<div class='quick'>" + "".join(
+    f"<button data-q='{q}'><img src='{_svg_data(icon)}' alt=''>{label}</button>" for q, label, icon in STARTERS
+) + "</div>"
+# Runs in the browser: a quick question is typed into the message box and sent.
+QUICK_JS = """
+element.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-q]');
+  if (!button) return;
+  const box = document.querySelector('#ask textarea');
+  if (!box) return;
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+  setter.call(box, button.dataset.q);
+  box.dispatchEvent(new Event('input', { bubbles: true }));
+  setTimeout(() => {
+    const send = document.querySelector('#ask button.submit-button') || document.querySelector('#ask button');
+    if (send) send.click();
+  }, 60);
+});
+"""
+
 
 # ---------- Saved conversations (pin, rename, delete) ----------
 
@@ -250,22 +310,27 @@ with gr.Blocks(title="المساعد الذكي للقبول - الجامعة ا
 
     with gr.Row(elem_id="layout", equal_height=False):
         with gr.Column(scale=1, min_width=220, elem_id="sidebar"):
-            new_chat = gr.Button("محادثة جديدة", icon=None, elem_id="new-chat")
+            new_chat = gr.Button("＋  محادثة جديدة", elem_id="new-chat")
+            gr.HTML("<div class='side-title'>المحادثات</div>", padding=False)
             chat_list = gr.HTML(history.render([], None), elem_id="chat-list", js_on_load=history.LIST_JS,
                                 padding=False, apply_default_css=False)
+            gr.HTML("<div class='side-title quick-title'>أسئلة سريعة</div>", padding=False)
+            gr.HTML(QUICK_LIST, elem_id="quick-list", js_on_load=QUICK_JS, padding=False, apply_default_css=False)
         with gr.Column(scale=4, min_width=320):
             chatbot = gr.Chatbot(
                 # The chat fills the screen height under the header, on laptops and phones.
-                elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
+                elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 250px)", min_height=420,
                 render=False,  # placed inside the ChatInterface below
                 buttons=["copy"],  # only a copy button on each message: no share or delete
                 feedback_options=("Like", "Dislike"),
                 avatar_images=(None, str(LOGO_FILE)),
-                placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
+                placeholder=WELCOME,
             )
             interface = gr.ChatInterface(
                 fn=chat,
                 examples=EXAMPLES,
+                example_labels=[label for _, label, _ in STARTERS],
+                example_icons=[str(ICONS / f"{icon}.svg") for _, _, icon in STARTERS],
                 cache_examples=False,
                 # api_visibility="private": nobody can call the bot from their own code and
                 # skip the website (and its limits); only the chat page can use it.
