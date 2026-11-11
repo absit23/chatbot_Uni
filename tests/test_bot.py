@@ -249,7 +249,7 @@ def test_busy_model_is_skipped_for_a_while(monkeypatch):
     import llm
     calls = []
 
-    def fake(system, prompt, model):
+    def fake(system, prompt, model, timeout=0):
         calls.append(model)
         if model == "strong":
             raise RuntimeError("503 UNAVAILABLE")

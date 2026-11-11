@@ -10,7 +10,10 @@ from config import GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, GEMINI_MODEL, GROQ_API
 # A model that just failed (busy, or out of daily quota) is skipped for a few minutes,
 # so the next visitors do not wait for the same failure again.
 COOLDOWN_SECONDS = 300
-TIMEOUT_SECONDS = 20  # a model that has not answered by then is treated as busy
+# A model that has not answered by then is treated as busy. The first (strong) model
+# gets a short wait; the backups are normally fast, so they get a little more time.
+FIRST_TIMEOUT_SECONDS = 8
+TIMEOUT_SECONDS = 15
 _resting_until: dict[str, float] = {}
 
 
@@ -18,9 +21,9 @@ class NoProviderAvailable(Exception):
     """Every configured API failed, for example because free limits ran out."""
 
 
-def _ask_gemini(system: str, prompt: str, model: str) -> str:
+def _ask_gemini(system: str, prompt: str, model: str, timeout: int = TIMEOUT_SECONDS) -> str:
     client = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(
-        timeout=TIMEOUT_SECONDS * 1000, retry_options=types.HttpRetryOptions(attempts=1)))  # fail fast, the next model answers
+        timeout=timeout * 1000, retry_options=types.HttpRetryOptions(attempts=1)))  # fail fast, the next model answers
     response = client.models.generate_content(
         model=model,
         contents=prompt,
@@ -48,7 +51,8 @@ def ask(system: str, prompt: str) -> tuple[str, str]:
         # The main model first; when its daily free limit runs out, the lighter model with a bigger limit.
         models = [GEMINI_MODEL, *GEMINI_FALLBACK_MODEL.split(",")]  # the fallback can be a list: a,b,c
         for model in dict.fromkeys(m.strip() for m in models if m.strip()):
-            providers.append((model, lambda s, p, m=model: _ask_gemini(s, p, m)))
+            wait = FIRST_TIMEOUT_SECONDS if not providers else TIMEOUT_SECONDS
+            providers.append((model, lambda s, p, m=model, w=wait: _ask_gemini(s, p, m, w)))
     if GROQ_API_KEY:
         providers.append(("Groq", _ask_groq))
     if not providers:
