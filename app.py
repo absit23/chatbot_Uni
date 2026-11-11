@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import eligibility  # noqa: E402
 import faq  # noqa: E402
+import history  # noqa: E402
 import rag  # noqa: E402
 from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
@@ -176,7 +177,7 @@ STYLE = {
         .gradio-container.gradio-container { padding: 6px 2px 2px !important; }
         .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
         /* On phones the saved conversations sit above the chat: keep them short */
-        .row:has(#chat) > .column:not(:has(#chat)) .block { max-height: 110px; overflow-y: auto; }
+        #chat-list { max-height: 120px; overflow-y: auto; }
       }
     </style>""",
     # Always use the light design, even on phones set to dark mode.
@@ -206,37 +207,90 @@ NOTE = (
     "تُحفظ الأسئلة بدون أسماء لتحسين الخدمة.</div>"
 )
 
+# ---------- Saved conversations (pin, rename, delete) ----------
+
+def show_list(store, current_id):
+    return history.render(store, current_id)
+
+
+def remember(messages, current_id, store):
+    """After every answer, save the open conversation in the visitor's browser."""
+    store, current_id = history.save(store, current_id, messages)
+    return current_id, store, history.render(store, current_id)
+
+
+def start_new_chat(store):
+    return [], [], None, history.render(store, None)
+
+
+def list_action(store, current_id, event: gr.EventData):
+    """A click in the side list: open a conversation, or pin / rename / delete it."""
+    data = getattr(event, "_data", None) or {}
+    action, chat_id = data.get("action"), data.get("id")
+    keep = gr.skip()
+    chat_view, state = keep, keep
+    if action == "open" and history.find(store, chat_id):
+        messages = history.find(store, chat_id)["messages"]
+        chat_view, state, current_id = messages, messages, chat_id
+    elif action == "pin":
+        store = history.toggle_pin(store, chat_id)
+    elif action == "rename":
+        store = history.rename(store, chat_id, data.get("title", ""))
+    elif action == "delete":
+        store = history.delete(store, chat_id)
+        if chat_id == current_id:
+            chat_view, state, current_id = [], [], None
+    return chat_view, state, current_id, store, history.render(store, current_id)
+
+
 with gr.Blocks(title="المساعد الذكي للقبول - الجامعة الإسلامية فرع بابل") as demo:
     gr.HTML(HEADER, elem_id="uni-header-box", padding=False)
-    # api_visibility="private": nobody can call the bot from their own code and
-    # skip the website (and its limits); only the chat page can use it.
-    chatbot = gr.Chatbot(
-        # The chat fills the screen height under the header, on laptops and phones.
-        elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
-        render=False,  # placed inside the ChatInterface below
-        buttons=["copy"],  # only a copy button on each message: no share or delete
-        feedback_options=("Like", "Dislike"),
-        avatar_images=(None, str(LOGO_FILE)),
-        placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
-    )
-    gr.ChatInterface(
-        fn=chat,
-        examples=EXAMPLES,
-        cache_examples=False,
-        api_visibility="private",
-        show_progress="hidden",  # no seconds counter: a friendly "searching…" message is shown instead
-        # Past conversations are kept in the visitor's own browser (no account, no server)
-        # and listed in a side panel, like ChatGPT.
-        save_history=True,
-        chatbot=chatbot,
-        textbox=gr.Textbox(
-            elem_id="ask", rtl=True, show_label=False, submit_btn=True,
-            placeholder="اكتب سؤالك هنا… مثال: معدلي 62 علمي",
-        ),
-    )
+    saved = gr.BrowserState([], storage_key="islamic_uni_babylon_chats")
+    current = gr.State(None)
+
+    with gr.Row(elem_id="layout", equal_height=False):
+        with gr.Column(scale=1, min_width=220, elem_id="sidebar"):
+            new_chat = gr.Button("محادثة جديدة", icon=None, elem_id="new-chat")
+            chat_list = gr.HTML(history.render([], None), elem_id="chat-list", js_on_load=history.LIST_JS,
+                                padding=False, apply_default_css=False)
+        with gr.Column(scale=4, min_width=320):
+            chatbot = gr.Chatbot(
+                # The chat fills the screen height under the header, on laptops and phones.
+                elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
+                render=False,  # placed inside the ChatInterface below
+                buttons=["copy"],  # only a copy button on each message: no share or delete
+                feedback_options=("Like", "Dislike"),
+                avatar_images=(None, str(LOGO_FILE)),
+                placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
+            )
+            interface = gr.ChatInterface(
+                fn=chat,
+                examples=EXAMPLES,
+                cache_examples=False,
+                # api_visibility="private": nobody can call the bot from their own code and
+                # skip the website (and its limits); only the chat page can use it.
+                api_visibility="private",
+                show_progress="hidden",  # no seconds counter: a friendly "searching…" message is shown instead
+                chatbot=chatbot,
+                textbox=gr.Textbox(
+                    elem_id="ask", rtl=True, show_label=False, submit_btn=True,
+                    placeholder="اكتب سؤالك هنا… مثال: معدلي 62 علمي",
+                ),
+            )
+    gr.HTML(NOTE, elem_id="note-box", padding=False)
+
     # 👍 / 👎 under each answer: saved to the chat archive to see which answers need fixing.
     chatbot.like(save_feedback, inputs=None, outputs=None, api_visibility="private")
-    gr.HTML(NOTE, elem_id="note-box", padding=False)
+
+    # Saved conversations live in the visitor's browser: no account, nothing stored on this laptop.
+    hidden = {"api_visibility": "private", "show_progress": "hidden", "queue": False}
+    demo.load(show_list, [saved, current], [chat_list], **hidden)
+    chatbot.change(remember, [chatbot, current, saved], [current, saved, chat_list], **hidden)
+    chatbot.clear(start_new_chat, [saved], [chatbot, interface.chatbot_state, current, chat_list], **hidden)
+    new_chat.click(start_new_chat, [saved], [chatbot, interface.chatbot_state, current, chat_list], **hidden)
+    chat_list.click(list_action, [saved, current],
+                    [chatbot, interface.chatbot_state, current, saved, chat_list], **hidden)
+
 
 if __name__ == "__main__":
     if LOCAL_NETWORK:

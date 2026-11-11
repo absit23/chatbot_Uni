@@ -192,6 +192,71 @@ button.submit-button, #ask button {
 #chat [class*="message-buttons"] button { border-inline: none !important; }
 
 /* ---------- Saved conversations (side panel) ---------- */
+#sidebar { gap: 10px !important; }
+#new-chat {
+  background: var(--navy) !important; color: #fff !important;
+  border: 1.5px solid var(--gold) !important; border-radius: 14px !important;
+  font-weight: 700 !important; box-shadow: 0 4px 12px rgba(11,35,80,.18);
+}
+#new-chat:hover { background: var(--navy-2) !important; }
+#chat-list {
+  direction: rtl; text-align: right;
+  background: #fff; border: 1px solid #e8dfc6; border-radius: 16px;
+  padding: 8px !important; min-height: 60px;
+}
+#chat-list .chat-empty { color: #9a9ea8; font-size: 13px; text-align: center; padding: 10px 4px; }
+#chat-list .chat-list { display: flex; flex-direction: column; gap: 4px; }
+#chat-list .chat-item {
+  position: relative; display: flex; align-items: center; gap: 4px;
+  padding: 7px 10px; border-radius: 10px; cursor: pointer;
+  color: var(--navy); font-size: 14px; font-weight: 600;
+}
+#chat-list .chat-item:hover { background: var(--cream); }
+#chat-list .chat-item.active { background: var(--gold-soft); }
+#chat-list .chat-title {
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#chat-list .chat-dots {
+  flex: none; width: 26px; height: 26px; border-radius: 8px;
+  border: none; background: transparent; color: #8a8f99;
+  font-size: 18px; line-height: 1; cursor: pointer; opacity: .55;
+}
+#chat-list .chat-item:hover .chat-dots, #chat-list .chat-item.active .chat-dots { opacity: 1; }
+#chat-list .chat-dots:hover { background: #fff; color: var(--navy); }
+#chat-list .chat-menu {
+  display: none; position: absolute; top: 34px; left: 6px; z-index: 50;
+  min-width: 160px; padding: 6px; border-radius: 12px;
+  background: #fff; border: 1px solid #e8dfc6; box-shadow: 0 10px 28px rgba(11,35,80,.18);
+}
+#chat-list .chat-menu.open { display: flex; flex-direction: column; }
+#chat-list .chat-menu button {
+  text-align: right; border: none; background: transparent; cursor: pointer;
+  padding: 8px 10px; border-radius: 8px; color: var(--ink); font-size: 14px; font-family: inherit;
+}
+#chat-list .chat-menu button:hover { background: var(--cream); }
+#chat-list .chat-menu button.danger { color: #b42318; }
+
+/* Buttons under each answer: plain grey icons like modern chat apps
+   (copy, retry, like, dislike), no boxes. Undo is not needed. */
+#chat button[aria-label="Undo"] { display: none !important; }
+#chat [class*="message-buttons"] [class*="icon-button-wrapper"] {
+  border: none !important; background: transparent !important; box-shadow: none !important;
+  gap: 2px !important;
+}
+#chat [class*="message-buttons"] [class*="icon-button-wrapper"] > :not(button) { display: none !important; }
+#chat [class*="message-buttons"] button {
+  color: #8a8f99 !important; background: transparent !important; border: none !important;
+  border-radius: 8px !important; padding: 5px !important;
+}
+#chat [class*="message-buttons"] button svg { width: 17px !important; height: 17px !important; }
+#chat [class*="message-buttons"] button:hover { color: var(--navy) !important; background: #f1ece0 !important; }
+#chat [class*="message-buttons"] button[aria-pressed="true"],
+#chat [class*="message-buttons"] button.selected { color: var(--gold) !important; }
+#chat [class*="message-buttons"] *::before,
+#chat [class*="message-buttons"] *::after { content: none !important; display: none !important; }
+#chat [class*="message-buttons"] button { border-inline: none !important; }
+
+/* ---------- Saved conversations (side panel) ---------- */
 .row:has(#chat) > .column:not(:has(#chat)) { gap: 10px !important; }
 .row:has(#chat) > .column:not(:has(#chat)) button.primary {
   background: var(--navy) !important; color: #fff !important;

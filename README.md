@@ -17,6 +17,7 @@ Other question: question -> search (university info first, then guide) -> Gemini
 | `src/eligibility.py` | The calculator: grade + branch -> departments, fees, near misses |
 | `src/rag.py` | Finds the right chunks and builds the prompt |
 | `src/llm.py` | Calls Gemini, and switches to Groq if Gemini fails |
+| `src/history.py` | Saved conversations in the visitor's browser: open, pin, rename, delete |
 | `src/textutils.py` | Normalizes Arabic spelling for search |
 | `src/config.py` | All settings |
 | `app.py` | The chat website and the public link |

@@ -171,3 +171,43 @@ def test_engineering_follow_up_in_dialect():
 
 def test_branch_joined_with_waw():
     assert "فرعك: علمي" in calculator("معدلي 50 وعلمي")
+
+
+# ---------- Saved conversations ----------
+
+import history  # noqa: E402
+
+CHAT = [say("معدلي 60 علمي"), bot("📊 حاسبة القبول")]
+
+
+def test_history_saves_new_conversation_with_title():
+    store, cid = history.save([], None, CHAT)
+    assert len(store) == 1 and store[0]["title"] == "معدلي 60 علمي" and cid == store[0]["id"]
+
+
+def test_history_updates_same_conversation():
+    store, cid = history.save([], None, CHAT)
+    store, cid2 = history.save(store, cid, CHAT + [say("شكرا"), bot("عفواً")])
+    assert cid2 == cid and len(store) == 1 and len(store[0]["messages"]) == 4
+
+
+def test_history_ignores_searching_message_and_empty_chats():
+    pending = {"role": "assistant", "content": "", "metadata": {"status": "pending"}}
+    store, cid = history.save([], None, [say("سؤال"), pending])
+    assert store == [] and cid is None
+
+
+def test_history_pin_rename_delete():
+    store, a = history.save([], None, CHAT)
+    store, b = history.save(store, None, [say("كم أجور القانون؟"), bot("1,000,000")])
+    store = history.toggle_pin(store, a)
+    assert history.ordered(store)[0]["id"] == a          # pinned goes first
+    store = history.rename(store, a, "  معدلي   ")
+    assert history.find(store, a)["title"] == "معدلي"
+    store = history.delete(store, a)
+    assert [c["id"] for c in store] == [b]
+
+
+def test_history_titles_are_escaped():
+    store, cid = history.save([], None, [say("<script>x</script>"), bot("y")])
+    assert "<script>" not in history.render(store, cid)
