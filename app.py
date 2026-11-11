@@ -194,11 +194,10 @@ STYLE = {
         /* The side panel becomes a drawer that slides in from the right (☰ in the header) */
         #sidebar {
           position: fixed !important; top: 0; right: 0; bottom: 0; z-index: 900;
-          width: min(84vw, 330px) !important; min-width: 0 !important; max-width: none !important;
-          padding: 18px 14px !important; overflow-y: auto;
+          width: 100vw !important; min-width: 0 !important; max-width: none !important;
+          padding: 0 16px 24px !important; overflow-y: auto; gap: 12px !important;
           background: var(--ivory, #f7f3ea) !important;
-          box-shadow: -12px 0 32px rgba(11,35,80,.18);
-          transform: translateX(105%); transition: transform .28s cubic-bezier(.2,.7,.2,1);
+          transform: translateX(105%); transition: transform .3s cubic-bezier(.2,.7,.2,1);
         }
         body.drawer-open #sidebar { transform: none; }
         #drawer-backdrop {
@@ -206,7 +205,8 @@ STYLE = {
           opacity: 0; pointer-events: none; transition: opacity .25s;
         }
         body.drawer-open #drawer-backdrop { opacity: 1; pointer-events: auto; }
-        #menu-btn { display: grid !important; }
+        .head-actions { display: flex !important; }
+        #drawer-top { display: flex !important; }
         #chat-list .chat-list { max-height: none !important; }
       }
       /* Phones */
@@ -218,7 +218,8 @@ STYLE = {
         #uni-header h1 { font-size: 17px !important; white-space: nowrap; }
         #uni-header .eyebrow { font-size: 12px !important; white-space: nowrap; }
         #uni-header { gap: 10px !important; }
-        #menu-btn { width: 36px !important; height: 36px !important; font-size: 18px !important; }
+        #uni-header .round-btn { width: 36px !important; height: 36px !important; font-size: 16px !important; }
+        #uni-header .year { display: none !important; }
         #uni-header .english { display: none; }
         #uni-header .year { padding: 4px 8px !important; font-size: 10.5px !important; }
         #chat .welcome h2 { font-size: 19px !important; }
@@ -249,7 +250,9 @@ STYLE = {
         }
         const close = () => document.body.classList.remove('drawer-open');
         document.addEventListener('click', (event) => {
-            if (event.target.closest('#menu-btn')) { document.body.classList.toggle('drawer-open'); return; }
+            if (event.target.closest('#menu-btn')) { document.body.classList.add('drawer-open'); return; }
+            if (event.target.closest('#drawer-close')) { close(); return; }
+            if (event.target.closest('#newchat-btn')) { const b = document.querySelector('#new-chat'); if (b) b.click(); close(); return; }
             if (event.target.id === 'drawer-backdrop') { close(); return; }
             const picked = event.target.closest('#new-chat, #quick-list button, #chat-list .chat-item');
             const menu = event.target.closest('.chat-dots, .chat-menu');
@@ -267,7 +270,10 @@ HEADER = f"""
     <div class="english">The Islamic University – Babylon Campus · AI Admission Assistant</div>
   </div>
   <div class="year">2026 – 2027</div>
-  <button id="menu-btn" aria-label="المحادثات والقائمة">☰</button>
+  <div class="head-actions">
+    <button id="newchat-btn" class="round-btn" aria-label="محادثة جديدة">✎</button>
+    <button id="menu-btn" class="round-btn" aria-label="المحادثات">☰</button>
+  </div>
 </div>
 """
 NOTE = (
@@ -343,6 +349,9 @@ with gr.Blocks(title="المساعد الذكي للقبول - الجامعة ا
 
     with gr.Row(elem_id="layout", equal_height=False):
         with gr.Column(scale=1, min_width=220, elem_id="sidebar"):
+            # Top bar of the conversations page on phones (hidden on laptops)
+            gr.HTML("<div id='drawer-top'><button id='drawer-close' class='round-btn' aria-label='رجوع'>→</button>"
+                    "<span>المحادثات</span></div>", padding=False)
             new_chat = gr.Button("＋  محادثة جديدة", elem_id="new-chat")
             gr.HTML("<div class='side-title'>المحادثات</div>", padding=False)
             chat_list = gr.HTML(history.render([], None), elem_id="chat-list", js_on_load=history.LIST_JS,

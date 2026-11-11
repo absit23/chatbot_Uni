@@ -314,11 +314,24 @@ body, gradio-app, .gradio-container { background: var(--ivory) !important; }
 #uni-header .titles { text-align: right; }
 #uni-header .year { direction: ltr; margin-inline-start: 0 !important; margin-right: auto !important; }
 
-/* ☰ button: only on phones and tablets (shown by the rules in app.py) */
-#menu-btn {
-  display: none; place-items: center; flex: none;
-  width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
-  background: rgba(255,255,255,.1); color: #fff; font-size: 20px; line-height: 1;
-  border: 1px solid rgba(201,162,39,.5);
+/* Round buttons in the header and the conversations page (phones and tablets only) */
+.head-actions { display: none; gap: 8px; flex: none; margin-right: auto; }
+.round-btn {
+  display: grid; place-items: center; flex: none;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  background: rgba(255,255,255,.1); color: #fff; font-size: 18px; line-height: 1;
+  border: 1px solid rgba(201,162,39,.55);
+  transition: background .15s, transform .15s;
 }
-#menu-btn:hover { background: rgba(255,255,255,.18); }
+.round-btn:hover { background: rgba(255,255,255,.2); }
+.round-btn:active { transform: scale(.94); }
+#drawer-top {
+  display: none; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 2; margin: 0 -16px 4px; padding: 14px 16px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-2));
+  color: #fff; font-size: 18px; font-weight: 700;
+  border-bottom: 2px solid var(--gold);
+}
+#drawer-top .round-btn { width: 38px; height: 38px; font-size: 18px; }
+#drawer-top span { color: #fff !important; font-size: 18px; font-weight: 700; }
+.html-container:has(#drawer-top) { padding: 0 !important; }
