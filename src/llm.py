@@ -12,7 +12,7 @@ from config import GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, GEMINI_MODEL, GROQ_API
 COOLDOWN_SECONDS = 300
 # A model that has not answered by then is treated as busy. The first (strong) model
 # gets a short wait; the backups are normally fast, so they get a little more time.
-FIRST_TIMEOUT_SECONDS = 8
+FIRST_TIMEOUT_SECONDS = 10  # Google refuses anything under 10 seconds
 TIMEOUT_SECONDS = 15
 _resting_until: dict[str, float] = {}
 
