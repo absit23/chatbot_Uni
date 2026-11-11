@@ -10,6 +10,7 @@ import gradio as gr
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import eligibility  # noqa: E402
+import faq  # noqa: E402
 import rag  # noqa: E402
 from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
@@ -97,6 +98,11 @@ def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessa
         text = "اكتب معدلك وفرعك في رسالة واحدة، مثل: معدلي 62 علمي"
         save_to_archive(visitor, message, text, "calculator")
         return text
+
+    fixed = faq.answer(message)
+    if fixed and not eligibility.handle(message, history):
+        save_to_archive(visitor, message, fixed, "fixed")
+        return with_buttons(fixed, next_suggestions(history, message))
 
     calculator = eligibility.handle(message, history)
     if calculator:
