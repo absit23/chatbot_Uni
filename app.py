@@ -153,6 +153,10 @@ STYLE = {
     "css": (ASSETS / "style.css").read_text(encoding="utf-8"),
     # Phone margins, added as a plain <style> because Gradio rewrites @media rules in "css".
     "head": """<style>
+      /* Never show Gradio's seconds counter or progress bar, on any action
+         (typing, buttons, examples, retry). Visitors see "searching…" instead. */
+      .progress-text, .meta-text, .meta-text-center, .eta-bar, .timer,
+      .wrap.minimal .progress-text { display: none !important; }
       @media (max-width: 560px) {
         .gradio-container.gradio-container { padding: 6px 2px 2px !important; }
         .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
