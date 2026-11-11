@@ -10,6 +10,7 @@ from config import GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, GEMINI_MODEL, GROQ_API
 # A model that just failed (busy, or out of daily quota) is skipped for a few minutes,
 # so the next visitors do not wait for the same failure again.
 COOLDOWN_SECONDS = 300
+TIMEOUT_SECONDS = 20  # a model that has not answered by then is treated as busy
 _resting_until: dict[str, float] = {}
 
 
@@ -18,7 +19,8 @@ class NoProviderAvailable(Exception):
 
 
 def _ask_gemini(system: str, prompt: str, model: str) -> str:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(
+        timeout=TIMEOUT_SECONDS * 1000, retry_options=types.HttpRetryOptions(attempts=1)))  # fail fast, the next model answers
     response = client.models.generate_content(
         model=model,
         contents=prompt,
@@ -30,7 +32,7 @@ def _ask_gemini(system: str, prompt: str, model: str) -> str:
 
 
 def _ask_groq(system: str, prompt: str) -> str:
-    client = Groq(api_key=GROQ_API_KEY)
+    client = Groq(api_key=GROQ_API_KEY, timeout=TIMEOUT_SECONDS)
     response = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
