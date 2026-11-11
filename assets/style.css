@@ -156,3 +156,17 @@ button.submit-button, #ask button {
   #uni-header h1 { font-size: 19px; }
   #uni-header .year { display: none; }
 }
+
+/* "Searching…" message shown while the AI prepares an answer */
+#chat .thought-group {
+  background: linear-gradient(90deg, #fffaf0, #fff3d6, #fffaf0) !important;
+  background-size: 200% 100% !important;
+  animation: searching 1.6s ease-in-out infinite;
+  border: 1.5px solid var(--gold) !important;
+  border-radius: 14px !important;
+}
+#chat .thought-group .title {
+  color: var(--navy) !important; font-weight: 700 !important; font-size: 15px !important;
+}
+#chat .thought-group .arrow { display: none !important; }
+@keyframes searching { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }

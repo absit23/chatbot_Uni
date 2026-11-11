@@ -80,47 +80,63 @@ def with_buttons(text: str, buttons: list[str]) -> gr.ChatMessage:
     return gr.ChatMessage(role="assistant", content=text, options=[{"value": b} for b in buttons])
 
 
-def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessage:
+THINKING = gr.ChatMessage(
+    role="assistant",
+    content="",
+    metadata={"title": "🔎 أبحث لك في معلومات الجامعة والدليل الوزاري…", "status": "pending"},
+)
+
+
+def chat(message: str, history: list, request: gr.Request):
+    """A generator: it can first show "searching…" and then replace it with the answer."""
     message = (message or "").strip()[:1000]
     if not message:
-        return "اكتب سؤالك من فضلك."
+        yield "اكتب سؤالك من فضلك."
+        return
 
     visitor = request.session_hash or "unknown"
     blocked = limit_message(visitor)
     if blocked:
-        return blocked
+        yield blocked
+        return
     visitor_questions[visitor] += 1
     today["count"] += 1
 
     if message == CALCULATOR_BUTTON:
         text = "اكتب معدلك وفرعك في رسالة واحدة، مثل: معدلي 62 علمي"
         save_to_archive(visitor, message, text, "calculator")
-        return text
+        yield text
+        return
 
     fixed = faq.answer(message)
     if fixed and not eligibility.handle(message, history):
         save_to_archive(visitor, message, fixed, "fixed")
-        return with_buttons(fixed, next_suggestions(history, message))
+        yield with_buttons(fixed, next_suggestions(history, message))
+        return
 
     calculator = eligibility.handle(message, history)
     if calculator:
         text, buttons = calculator
         save_to_archive(visitor, message, text, "calculator")
-        return with_buttons(text, buttons or next_suggestions(history, message, skip=(CALCULATOR_BUTTON,)))
+        yield with_buttons(text, buttons or next_suggestions(history, message, skip=(CALCULATOR_BUTTON,)))
+        return
 
+    yield THINKING  # shown only while the AI works (1-3 seconds); the answer replaces it
     try:
         previous = [text_of(i.get("content")) for i in history or [] if isinstance(i, dict) and i.get("role") == "user"]
         result = rag.answer(message, previous[-1] if previous else "")
     except NoProviderAvailable as error:
         print(f"[all providers failed] {error}")
         save_to_archive(visitor, message, "", "failed")
-        return "عذراً، الخدمة مشغولة حالياً. حاول بعد دقيقة."
+        yield "عذراً، الخدمة مشغولة حالياً. حاول بعد دقيقة."
+        return
 
     # The answer already cites its source inline, e.g. (ص 50) or (معلومات الجامعة).
     # The searched pages are printed in the terminal only, to help with testing.
     print(f"[searched] university info: {result['used_university_info']} | guide pages: {result['pages']} | {result['provider']}")
     save_to_archive(visitor, message, result["answer"], f"search/{result['provider']}")
-    return with_buttons(result["answer"], next_suggestions(history, message))
+    yield with_buttons(result["answer"], next_suggestions(history, message))
+    return
 
 
 # ---------- Look and feel ----------
@@ -178,6 +194,7 @@ with gr.Blocks(title="المساعد الذكي للقبول - الجامعة ا
         examples=EXAMPLES,
         cache_examples=False,
         api_visibility="private",
+        show_progress="hidden",  # no seconds counter: a friendly "searching…" message is shown instead
         chatbot=gr.Chatbot(
             # The chat fills the screen height under the header, on laptops and phones.
             elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
