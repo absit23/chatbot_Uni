@@ -135,6 +135,13 @@ THEME = gr.themes.Soft(
 STYLE = {
     "theme": THEME,
     "css": (ASSETS / "style.css").read_text(encoding="utf-8"),
+    # Phone margins, added as a plain <style> because Gradio rewrites @media rules in "css".
+    "head": """<style>
+      @media (max-width: 560px) {
+        .gradio-container.gradio-container { padding: 6px 2px 2px !important; }
+        .gradio-container .main.main { padding-left: 4px !important; padding-right: 4px !important; }
+      }
+    </style>""",
     # Always use the light design, even on phones set to dark mode.
     "js": """() => {
         const url = new URL(window.location);
@@ -172,7 +179,8 @@ with gr.Blocks(title="المساعد الذكي للقبول - الجامعة ا
         cache_examples=False,
         api_visibility="private",
         chatbot=gr.Chatbot(
-            elem_id="chat", show_label=False, rtl=True, height=520,
+            # The chat fills the screen height under the header, on laptops and phones.
+            elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
             buttons=["copy"],  # only a copy button on each message: no share or delete
             avatar_images=(None, str(LOGO_FILE)),
             placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
