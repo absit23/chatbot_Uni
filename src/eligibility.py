@@ -22,7 +22,11 @@ BRANCH_NAMES = {"علمي": "علمي", "احيائي": "إحيائي", "تطب�
 GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات", "مجموعي", "حصلت", "جبت", "جايب"}
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
 # Words that mean "use the grade I already gave you" in a follow-up like "ماذا يقبل معدلي ايضا؟"
-FOLLOW_UP_WORDS = GRADE_WORDS | {"يحق", "يقبل", "يقبلني", "يقبلوني", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "متاح", "متاحه", "ايضا", "غيرها"}
+ACCEPT_WORDS = {"يقبل", "يقبلني", "يقبلوني"}
+# "يحق لي" or "اكدر" alone are too general ("هل يحق لي ترك سنة؟"), so they only
+# count as a grade follow-up when the message also names a department or departments.
+CAN_WORDS = {"يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم"}
+DEPARTMENT_WORDS = {"اقسام", "قسم", "تخصص", "تخصصات", "ايضا", "غيرها", "متاح", "متاحه"}
 NOT_A_GRADE_WORDS = {"تخفيض", "تخفيضات", "خصم", "ص", "صفحه", "نسبه"}
 GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كليه", "اسلاميه", "جامعه", "طبيه", "تربيه", "اداب", "دراسات", "دراسه"}
 BRANCH_BUTTONS = ["علمي", "إحيائي", "تطبيقي", "أدبي", "مهني"]
@@ -138,7 +142,10 @@ def _read(text: str) -> dict:
         elsewhere = [r for r in GUIDE_ROWS if best and guide_overlap[id(r)] == best]
     about_grades = (bool(words & (GRADE_WORDS | QUESTION_WORDS)) or branch is not None or grade is not None) \
         and not (words & NOT_A_GRADE_WORDS) and "%" not in text
-    follow_up = bool(words & FOLLOW_UP_WORDS) and not (words & NOT_A_GRADE_WORDS)
+    names_department = bool(wanted or elsewhere or words & DEPARTMENT_WORDS)
+    follow_up = bool(
+        words & GRADE_WORDS or words & ACCEPT_WORDS or (words & CAN_WORDS and names_department)
+    ) and not (words & NOT_A_GRADE_WORDS)
     return {"grade": grade, "branch": branch, "times": times, "wanted": wanted,
             "elsewhere": elsewhere, "about_grades": about_grades, "follow_up": follow_up}
 
@@ -235,7 +242,9 @@ def calculate(grade: float, branch: str, times: list[str], wanted: list[dict], e
         parts += ["", not_offered(elsewhere, grade, branch)]
     if yes:
         parts += ["", f"✅ يحق لك التقديم في {UNIVERSITY_NAME} على:"] + yes
-    if near:
+    if near and not yes and not wanted:
+        parts += ["", f"معدلك لا يكفي حالياً لأي قسم يقبل فرع {BRANCH_NAMES[branch]} في {UNIVERSITY_NAME}. أقرب الأقسام لك:"] + near
+    elif near:
         parts += ["", "❌ لا يكفي معدلك لـ:"] + near
     not_for_branch = [d["department"] for d in wanted if branch not in d["branches"]]
     if not yes and not near and not not_for_branch:
