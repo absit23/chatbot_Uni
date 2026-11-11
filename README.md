@@ -52,6 +52,16 @@ python app.py
 
 `app.py` prints a public `gradio.live` link. It works while your laptop and the app stay running, lasts up to 72 hours, and changes on every restart.
 
+## Check that nothing broke
+
+After any change, run:
+
+```
+python -m pytest
+```
+
+Every dot is a passing check. A red `FAILED` line names the question that broke. The checks live in `tests/test_bot.py`: when you find a new mistake, add it there as a test, so it can never come back.
+
 ## Update university data
 
 Edit `data/university/departments.csv` for minimum grades and fees (the calculator reads it directly), and `data/university/info.md` for anything students might ask. Each `# heading` section in `info.md` is searched as one piece, so keep one topic per section. Run `python src/ingest.py` after changing `info.md`.
