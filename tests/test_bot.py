@@ -242,3 +242,24 @@ def test_department_groups():
     assert "القانون" in text and "هندسة" not in text
     text, _ = eligibility.handle("معدلي 80 احيائي شنو الاقسام الطبية", [])
     assert "المختبرات" in text and "القانون" not in text
+
+
+def test_busy_model_is_skipped_for_a_while(monkeypatch):
+    import llm
+    calls = []
+
+    def fake(system, prompt, model):
+        calls.append(model)
+        if model == "strong":
+            raise RuntimeError("503 UNAVAILABLE")
+        return "ok"
+
+    monkeypatch.setattr(llm, "GEMINI_API_KEY", "x")
+    monkeypatch.setattr(llm, "GEMINI_MODEL", "strong")
+    monkeypatch.setattr(llm, "GEMINI_FALLBACK_MODEL", "light")
+    monkeypatch.setattr(llm, "GROQ_API_KEY", "")
+    monkeypatch.setattr(llm, "_ask_gemini", fake)
+    monkeypatch.setattr(llm, "_resting_until", {})
+    assert llm.ask("s", "p") == ("ok", "light")
+    assert llm.ask("s", "p") == ("ok", "light")
+    assert calls == ["strong", "light", "light"]  # the busy model was not tried again

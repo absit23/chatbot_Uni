@@ -1,9 +1,16 @@
 """The API layer: send a prompt to Gemini, and fall back to Groq if that fails."""
+import time
 from google import genai
 from google.genai import types
 from groq import Groq
 
 from config import GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, GEMINI_MODEL, GROQ_API_KEY, GROQ_MODEL
+
+
+# A model that just failed (busy, or out of daily quota) is skipped for a few minutes,
+# so the next visitors do not wait for the same failure again.
+COOLDOWN_SECONDS = 300
+_resting_until: dict[str, float] = {}
 
 
 class NoProviderAvailable(Exception):
@@ -46,10 +53,12 @@ def ask(system: str, prompt: str) -> tuple[str, str]:
         raise NoProviderAvailable("No API key found. Add GEMINI_API_KEY to your .env file.")
 
     errors = []
-    for name, call in providers:
+    ready = [p for p in providers if _resting_until.get(p[0], 0) <= time.time()] or providers
+    for name, call in ready:
         try:
             return call(system, prompt), name
         except Exception as error:  # rate limit, network failure, retired model...
-            print(f"[{name} failed] {error}")
+            print(f"[{name} failed, skipped for {COOLDOWN_SECONDS // 60} minutes] {str(error)[:120]}")
+            _resting_until[name] = time.time() + COOLDOWN_SECONDS
             errors.append(f"{name}: {error}")
     raise NoProviderAvailable(" | ".join(errors))
