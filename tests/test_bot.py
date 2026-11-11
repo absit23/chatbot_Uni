@@ -267,3 +267,9 @@ def test_busy_model_is_skipped_for_a_while(monkeypatch):
     assert llm.ask("s", "p") == ("ok", "light")
     assert llm.ask("s", "p") == ("ok", "light")
     assert calls == ["strong", "light", "light"]  # the busy model was not tried again
+
+
+def test_bot_is_not_admission_only():
+    assert "للقبول" not in smalltalk.answer("مرحبا")
+    assert "الامتحانات" in smalltalk.answer("من انت")
+    assert smalltalk.answer("شكرا كم مرة ارسب") is None

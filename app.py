@@ -29,16 +29,16 @@ STARTERS = [
     ("كم أجور الدراسة؟", "أجور الدراسة لكل قسم", "fees"),
     ("ما الأقسام الموجودة في الجامعة؟", "الأقسام والكليات", "departments"),
     ("ما هي التخفيضات؟", "التخفيضات في الأجور", "discounts"),
-    ("أين تقع الجامعة؟", "موقع الجامعة والتواصل", "location"),
+    ("أنا طالب في الجامعة", "أنا طالب حالي في الجامعة", "student"),
 ]
 EXAMPLES = [q for q, _, _ in STARTERS]
 
 WELCOME = """
 <div class="welcome">
   <div class="orb"><span>✦</span></div>
-  <h2>مرحباً بك في المساعد الذكي للقبول</h2>
-  <p>اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن شروط القبول والأجور والتخفيضات
-  والوثائق المطلوبة للتسجيل في الجامعة الإسلامية - فرع بابل.</p>
+  <h2>مرحباً بك في المساعد الذكي للجامعة الإسلامية - فرع بابل</h2>
+  <p>للطلبة الجدد: اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن الأجور والتخفيضات والوثائق.
+  ولطلبة الجامعة: اسأل عن التعليمات الامتحانية والرسوب والانتقال والاستضافة وسنة الترك والتدريب الصيفي.</p>
 </div>
 """
 
@@ -78,6 +78,23 @@ def limit_message(visitor: str) -> str | None:
 
 # Suggested next questions, shown as buttons under answers (3 at a time, never one already asked).
 CALCULATOR_BUTTON = "اعرف الأقسام المتاحة لمعدلي"
+STUDENT_BUTTON = "أنا طالب في الجامعة"
+STUDENT_TEXT = (
+    "أهلاً بك 🎓 أستطيع مساعدتك في تعليمات الطلبة حسب الدليل الوزاري والتعليمات الامتحانية لسنة 2026، مثل:\n"
+    "• النجاح والرسوب والدور الثاني، ومتى يُرقّن القيد\n"
+    "• الغياب عن الامتحانات وعقوبات الغش\n"
+    "• الانتقال والاستضافة بين الجامعات\n"
+    "• سنة الترك في الدراسة المسائية\n"
+    "• التدريب الصيفي وحساب معدل التخرج\n"
+    "• انضباط الطلبة\n\n"
+    "اكتب سؤالك أو اختر من الأسئلة:"
+)
+STUDENT_QUESTIONS = [
+    "متى يُرقّن قيد الطالب بسبب الرسوب؟",
+    "ما عقوبة الغش في الامتحان؟",
+    "كيف أنتقل إلى جامعة أخرى؟",
+    "ما هي سنة الترك في الدراسة المسائية؟",
+]
 SUGGESTIONS = [
     "ما هي التخفيضات؟",
     "ما الوثائق المطلوبة للتسجيل؟",
@@ -85,6 +102,7 @@ SUGGESTIONS = [
     "ما الأقسام الموجودة في الجامعة؟",
     "أين تقع الجامعة؟",
     "كم أجور الدراسة؟",
+    STUDENT_BUTTON,
 ]
 
 
@@ -124,6 +142,11 @@ def chat(message: str, history: list, request: gr.Request):
         return
     visitor_questions[visitor] += 1
     today["count"] += 1
+
+    if message == STUDENT_BUTTON:
+        save_to_archive(visitor, message, STUDENT_TEXT, "fixed")
+        yield with_buttons(STUDENT_TEXT, [q for q in STUDENT_QUESTIONS if q not in str(history)])
+        return
 
     if message == CALCULATOR_BUTTON:
         text = "اكتب معدلك وفرعك في رسالة واحدة، مثل: معدلي 62 علمي"
@@ -275,8 +298,8 @@ HEADER = f"""
   <img src="{LOGO}" alt="شعار الجامعة الإسلامية - فرع بابل">
   <div class="titles">
     <div class="eyebrow">الجامعة الإسلامية - فرع بابل</div>
-    <h1>المساعد الذكي للقبول</h1>
-    <div class="english">The Islamic University – Babylon Campus · AI Admission Assistant</div>
+    <h1>المساعد الذكي</h1>
+    <div class="english">The Islamic University – Babylon Campus · AI Assistant</div>
   </div>
   <div class="year">2026 – 2027</div>
   <div class="head-actions">
@@ -286,7 +309,7 @@ HEADER = f"""
 </div>
 """
 NOTE = (
-    "<div id='note'>الحد الأدنى يؤهلك للتقديم، والقبول النهائي يخضع للتنافس وضوابط الوزارة. "
+    "<div id='note'>المعلومات من الجامعة والدليل الوزاري، والقبول النهائي يخضع للتنافس وضوابط الوزارة. "
     "تُحفظ الأسئلة بدون أسماء لتحسين الخدمة.</div>"
 )
 
@@ -351,7 +374,7 @@ def list_action(store, current_id, event: gr.EventData):
     return chat_view, state, current_id, store, history.render(store, current_id)
 
 
-with gr.Blocks(title="المساعد الذكي للقبول - الجامعة الإسلامية فرع بابل") as demo:
+with gr.Blocks(title="المساعد الذكي - الجامعة الإسلامية فرع بابل") as demo:
     gr.HTML(HEADER, elem_id="uni-header-box", padding=False)
     saved = gr.BrowserState([], storage_key="islamic_uni_babylon_chats")
     current = gr.State(None)
