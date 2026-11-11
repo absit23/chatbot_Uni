@@ -133,11 +133,14 @@ with gr.Blocks(title="مساعد القبول - الجامعة الإسلامي�
         "<small>الحد الأدنى يؤهلك للتقديم، والقبول النهائي يخضع للتنافس وضوابط الوزارة. "
         "تُحفظ الأسئلة بدون أسماء لتحسين الخدمة.</small></div>"
     )
-    gr.ChatInterface(fn=chat, examples=EXAMPLES, cache_examples=False)
+    # api_visibility="private": nobody can call the bot from their own code and
+    # skip the website (and its limits); only the chat page can use it.
+    gr.ChatInterface(fn=chat, examples=EXAMPLES, cache_examples=False, api_visibility="private")
 
 if __name__ == "__main__":
     if LOCAL_NETWORK:
         print("Phones on the same Wi-Fi: open http://<this laptop's IPv4 address>:7860  (find it with: ipconfig)")
     demo.queue(default_concurrency_limit=3).launch(
-        share=SHARE, server_name="0.0.0.0" if LOCAL_NETWORK else "127.0.0.1", server_port=7860
+        share=SHARE, server_name="0.0.0.0" if LOCAL_NETWORK else "127.0.0.1", server_port=7860,
+        footer_links=[],  # hide "Use via API · Built with Gradio · Settings"
     )
