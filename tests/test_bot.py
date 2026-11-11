@@ -219,7 +219,8 @@ import smalltalk  # noqa: E402
 
 def test_small_talk_replies():
     assert "وعليكم السلام" in smalltalk.answer("السلام عليكم")
-    assert "العفو" in smalltalk.answer("احسنت") or "شكراً" in smalltalk.answer("احسنت") or "يسعدني" in smalltalk.answer("احسنت")
+    thanks = smalltalk.answer("احسنت")
+    assert any(w in thanks for w in ("العفو", "شكراً", "يسعدني")) and "أنا المساعد" not in thanks
     assert "لست موظفاً" in smalltalk.answer("انت انسان؟")
     assert "أعتذر" in smalltalk.answer("انت غبي")
     assert "لم أفهم" in smalltalk.answer("؟؟")
