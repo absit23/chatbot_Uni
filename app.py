@@ -1,4 +1,5 @@
 """STEP 3: the chat website. Run with: python app.py"""
+import base64
 import json
 import sys
 from collections import Counter
@@ -16,10 +17,7 @@ from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUES
 from llm import NoProviderAvailable  # noqa: E402
 from textutils import text_of  # noqa: E402
 
-CSS = """
-.message, .message * { direction: rtl; text-align: right; }
-textarea { direction: rtl; text-align: right; }
-"""
+
 
 EXAMPLES = [
     "معدلي 60 فرع علمي، ما الأقسام المتاحة لي؟",
@@ -125,17 +123,66 @@ def chat(message: str, history: list, request: gr.Request) -> str | gr.ChatMessa
     return with_buttons(result["answer"], next_suggestions(history, message))
 
 
-with gr.Blocks(title="مساعد القبول - الجامعة الإسلامية فرع بابل") as demo:
-    gr.HTML(f"<style>{CSS}</style>")
-    gr.Markdown(
-        "<div dir='rtl' align='center'><h2>مساعد القبول، الجامعة الإسلامية فرع بابل 2026-2027</h2>"
-        "اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن الأجور والتخفيضات وشروط التقديم.<br>"
-        "<small>الحد الأدنى يؤهلك للتقديم، والقبول النهائي يخضع للتنافس وضوابط الوزارة. "
-        "تُحفظ الأسئلة بدون أسماء لتحسين الخدمة.</small></div>"
-    )
+# ---------- Look and feel ----------
+ASSETS = Path(__file__).parent / "assets"
+LOGO_FILE = ASSETS / "logo.png"
+LOGO = "data:image/png;base64," + base64.b64encode(LOGO_FILE.read_bytes()).decode()
+
+THEME = gr.themes.Soft(
+    primary_hue=gr.themes.colors.amber,
+    font=[gr.themes.GoogleFont("Tajawal"), "Segoe UI", "Tahoma", "sans-serif"],
+)
+STYLE = {
+    "theme": THEME,
+    "css": (ASSETS / "style.css").read_text(encoding="utf-8"),
+    # Always use the light design, even on phones set to dark mode.
+    "js": """() => {
+        const url = new URL(window.location);
+        if (url.searchParams.get('__theme') !== 'light') {
+            url.searchParams.set('__theme', 'light');
+            window.location.replace(url);
+        }
+    }""",
+}
+
+HEADER = f"""
+<div id="uni-header">
+  <img src="{LOGO}" alt="شعار الجامعة الإسلامية - فرع بابل">
+  <div class="titles">
+    <div class="eyebrow">الجامعة الإسلامية - فرع بابل</div>
+    <h1>المساعد الذكي للقبول</h1>
+    <div class="english">The Islamic University – Babylon Campus · AI Admission Assistant</div>
+  </div>
+  <div class="year">2026 - 2027</div>
+</div>
+<div id="intro">اكتب معدلك وفرعك لتعرف الأقسام المتاحة لك، أو اسأل عن الأجور والتخفيضات وشروط التقديم.</div>
+"""
+NOTE = (
+    "<div id='note'>الحد الأدنى يؤهلك للتقديم، والقبول النهائي يخضع للتنافس وضوابط الوزارة. "
+    "تُحفظ الأسئلة بدون أسماء لتحسين الخدمة.</div>"
+)
+
+with gr.Blocks(title="المساعد الذكي للقبول - الجامعة الإسلامية فرع بابل") as demo:
+    gr.HTML(HEADER, elem_id="uni-header-box", padding=False)
     # api_visibility="private": nobody can call the bot from their own code and
     # skip the website (and its limits); only the chat page can use it.
-    gr.ChatInterface(fn=chat, examples=EXAMPLES, cache_examples=False, api_visibility="private")
+    gr.ChatInterface(
+        fn=chat,
+        examples=EXAMPLES,
+        cache_examples=False,
+        api_visibility="private",
+        chatbot=gr.Chatbot(
+            elem_id="chat", show_label=False, rtl=True, height=520,
+            buttons=["copy"],  # only a copy button on each message: no share or delete
+            avatar_images=(None, str(LOGO_FILE)),
+            placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
+        ),
+        textbox=gr.Textbox(
+            elem_id="ask", rtl=True, show_label=False, submit_btn=True,
+            placeholder="اكتب سؤالك هنا… مثال: معدلي 62 علمي",
+        ),
+    )
+    gr.HTML(NOTE, elem_id="note-box", padding=False)
 
 if __name__ == "__main__":
     if LOCAL_NETWORK:
@@ -143,4 +190,5 @@ if __name__ == "__main__":
     demo.queue(default_concurrency_limit=3).launch(
         share=SHARE, server_name="0.0.0.0" if LOCAL_NETWORK else "127.0.0.1", server_port=7860,
         footer_links=[],  # hide "Use via API · Built with Gradio · Settings"
+        **STYLE,
     )
