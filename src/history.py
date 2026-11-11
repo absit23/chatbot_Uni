@@ -104,7 +104,16 @@ element.addEventListener('click', (event) => {
   });
   if (!item) return;
   const id = item.dataset.id;
-  if (dots) { item.querySelector('.chat-menu').classList.toggle('open'); return; }
+  if (dots) {
+    // The list scrolls, which would cut the menu off, so the menu floats above
+    // the page (position: fixed), placed just under the ⋮ button.
+    const menu = item.querySelector('.chat-menu');
+    const box = dots.getBoundingClientRect();
+    menu.style.top = (box.bottom + 4) + 'px';
+    menu.style.left = Math.max(8, box.left) + 'px';
+    menu.classList.toggle('open');
+    return;
+  }
   if (action) {
     const what = action.dataset.action;
     item.querySelector('.chat-menu').classList.remove('open');
@@ -120,7 +129,8 @@ element.addEventListener('click', (event) => {
   }
   trigger('click', {action: 'open', id: id});
 });
-document.addEventListener('click', (event) => {
-  if (!element.contains(event.target)) element.querySelectorAll('.chat-menu.open').forEach(m => m.classList.remove('open'));
-});
+const closeMenus = () => element.querySelectorAll('.chat-menu.open').forEach(m => m.classList.remove('open'));
+document.addEventListener('click', (event) => { if (!element.contains(event.target)) closeMenus(); });
+window.addEventListener('scroll', closeMenus, true);
+window.addEventListener('resize', closeMenus);
 """

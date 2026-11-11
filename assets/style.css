@@ -116,7 +116,7 @@ body, gradio-app, .gradio-container { background: var(--ivory) !important; }
 #chat-list .chat-item:hover .chat-dots, #chat-list .chat-item.active .chat-dots { opacity: 1; }
 #chat-list .chat-dots:hover { background: #fff; color: var(--navy); }
 #chat-list .chat-menu {
-  display: none; position: absolute; top: 36px; left: 6px; z-index: 50; min-width: 168px; padding: 6px;
+  display: none; position: fixed; z-index: 1000; min-width: 168px; padding: 6px;
   border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-md);
 }
 #chat-list .chat-menu.open { display: flex; flex-direction: column; animation: pop .14s var(--ease); }
@@ -292,3 +292,5 @@ body, gradio-app, .gradio-container { background: var(--ivory) !important; }
 
 #quick-list .quick button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #quick-list .quick button span, #quick-list .quick button { min-width: 0; }
+/* Arabic reads right to left, so the send arrow points left */
+#ask button svg { transform: scaleX(-1); }
