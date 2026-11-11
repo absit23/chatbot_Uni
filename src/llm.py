@@ -37,7 +37,8 @@ def ask(system: str, prompt: str) -> tuple[str, str]:
     providers = []
     if GEMINI_API_KEY:
         # The main model first; when its daily free limit runs out, the lighter model with a bigger limit.
-        for model in dict.fromkeys(m for m in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL) if m):
+        models = [GEMINI_MODEL, *GEMINI_FALLBACK_MODEL.split(",")]  # the fallback can be a list: a,b,c
+        for model in dict.fromkeys(m.strip() for m in models if m.strip()):
             providers.append((model, lambda s, p, m=model: _ask_gemini(s, p, m)))
     if GROQ_API_KEY:
         providers.append(("Groq", _ask_groq))
