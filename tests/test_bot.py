@@ -273,3 +273,10 @@ def test_bot_is_not_admission_only():
     assert "للقبول" not in smalltalk.answer("مرحبا")
     assert "الامتحانات" in smalltalk.answer("من انت")
     assert smalltalk.answer("شكرا كم مرة ارسب") is None
+
+
+def test_university_procedures_reach_the_search():
+    assert smalltalk.answer("شكرا كيف اباشر") is None
+    assert smalltalk.answer("مرحبا اريد تأييد استمرارية") is None
+    info = (Path(__file__).parent.parent / "data" / "university" / "info.md").read_text(encoding="utf-8")
+    assert "رقم الوصل" in info and "إلى من يهمه الأمر" in info
