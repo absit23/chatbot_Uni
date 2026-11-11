@@ -224,6 +224,7 @@ def test_small_talk_replies():
     assert "لست موظفاً" in smalltalk.answer("انت انسان؟")
     assert "أعتذر" in smalltalk.answer("انت غبي")
     assert "لم أفهم" in smalltalk.answer("؟؟")
+    assert "بخير" in smalltalk.answer("كيف حالك") and "بخير" in smalltalk.answer("شلونك")
 
 
 def test_small_talk_leaves_real_questions():
