@@ -22,7 +22,8 @@ BRANCH_NAMES = {"علمي": "علمي", "احيائي": "إحيائي", "تطب�
 GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات", "مجموعي", "حصلت", "جبت", "جايب"}
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
 # Words that mean "use the grade I already gave you" in a follow-up like "ماذا يقبل معدلي ايضا؟"
-ACCEPT_WORDS = {"يقبل", "يقبلني", "يقبلوني"}
+ACCEPT_WORDS = {"يقبل", "يقبلني", "يقبلوني", "مايقبل", "ميقبل", "مايقبلني", "ميقبلني", "ينقبل", "انقبل"}
+CATEGORY_WORDS = {"هندسه": "هندسة", "الهندسه": "هندسة", "هندسيه": "هندسة", "الهندسيه": "هندسة"}
 # "يحق لي" or "اكدر" alone are too general ("هل يحق لي ترك سنة؟"), so they only
 # count as a grade follow-up when the message also names a department or departments.
 CAN_WORDS = {"يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم"}
@@ -32,6 +33,26 @@ GENERIC_NAME_WORDS = {"هندسه", "تقنيات", "علوم", "قسم", "كل�
 BRANCH_BUTTONS = ["علمي", "إحيائي", "تطبيقي", "أدبي", "مهني"]
 NEAR_MISS = 5  # also show departments the student misses by up to this many marks
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+TENS = {"اربعين": 40, "خمسين": 50, "ستين": 60, "سبعين": 70, "ثمانين": 80, "ثمنين": 80, "تسعين": 90}
+ONES = {"واحد": 1, "اثنين": 2, "اثنان": 2, "ثنين": 2, "ثلاث": 3, "ثلاثه": 3, "اربع": 4, "اربعه": 4,
+        "خمس": 5, "خمسه": 5, "ست": 6, "سته": 6, "سبع": 7, "سبعه": 7, "ثمان": 8, "ثمانيه": 8,
+        "ثمنيه": 8, "تسع": 9, "تسعه": 9}
+HUNDRED = {"ميه", "مئه", "مائه", "مية"}
+HALF = {"نص", "نصف"}
+
+
+def _grade_in_words(clean: str) -> float | None:
+    """Read grades written in words: "ستين" -> 60, "خمسة وستين ونص" -> 65.5."""
+    words = [w[1:] if w.startswith("و") and len(w) >= 3 else w for w in re.findall("[\u0621-\u064A]+", clean)]
+    for i, word in enumerate(words):
+        if word in TENS or word in HUNDRED:
+            value = TENS.get(word, 100)
+            if i > 0 and words[i - 1] in ONES and value < 100:
+                value += ONES[words[i - 1]]
+            if i + 1 < len(words) and words[i + 1] in HALF:
+                value += 0.5
+            return float(value)
+    return None
 
 
 def _load_departments() -> list[dict]:
@@ -129,12 +150,18 @@ def _read(text: str) -> dict:
         if 40 <= value <= 100:
             grade = value
             break
-    branch = next((BRANCHES[w] for w in words if w in BRANCHES), None)
+    if grade is None:
+        grade = _grade_in_words(clean)
+    plain = words | {w[1:] for w in words if w.startswith("و") and len(w) > 3}  # "وعلمي" -> "علمي"
+    branch = next((BRANCHES[w] for w in plain if w in BRANCHES), None)
     study = {"صباحي": "صباحي", "مسائي": "مسائي"}
     times = [study[w] for w in words if w in study]
     overlap = {id(d): len(d["name_words"] & words) for d in DEPARTMENTS}
     best = max(overlap.values())
     wanted = [d for d in DEPARTMENTS if best and overlap[id(d)] == best]
+    category = next((CATEGORY_WORDS[w] for w in normalize(text).split() if w.strip("؟?") in CATEGORY_WORDS), None)
+    if not wanted and category:  # "هندسة ما يقبل؟" means all engineering departments
+        wanted = [d for d in DEPARTMENTS if category in d["department"]]
     elsewhere = []
     if not wanted and GUIDE_ROWS:
         guide_overlap = {id(r): len(r["name_words"] & words) for r in GUIDE_ROWS}

@@ -144,3 +144,30 @@ def test_all_ten_departments_have_fees():
 
 def test_phone_number_is_complete():
     assert "07726018188" in faq.location()
+
+
+# ---------- Added after the 11 Nov test session ----------
+
+@pytest.mark.parametrize("question, grade", [
+    ("معدلي ستين علمي", "60"),
+    ("معدلي خمسة وستين علمي", "65"),
+    ("معدلي سبعين ونص احيائي", "70.5"),
+])
+def test_grade_written_in_words(question, grade):
+    assert f"معدلك: {grade} |" in calculator(question)
+
+
+def test_grade_in_words_without_branch_asks_branch():
+    text, buttons = eligibility.handle("معدلي ستين ماذا يقبلني؟", [])
+    assert "معدلك 60" in text
+
+
+def test_engineering_follow_up_in_dialect():
+    history = [say("معدلي 50 وعلمي"), bot("📊 حاسبة القبول")]
+    answer = calculator("هندسه مايقبل", history)
+    assert "هندسة تقنيات الحاسوب (مسائي): الحد الأدنى 59.5، ينقصك 9.5" in answer
+    assert "اللغة الإنجليزية" not in answer
+
+
+def test_branch_joined_with_waw():
+    assert "فرعك: علمي" in calculator("معدلي 50 وعلمي")
