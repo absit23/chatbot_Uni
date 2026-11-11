@@ -170,3 +170,23 @@ button.submit-button, #ask button {
 }
 #chat .thought-group .arrow { display: none !important; }
 @keyframes searching { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* Buttons under each answer: plain grey icons like modern chat apps
+   (copy, retry, like, dislike), no boxes. Undo is not needed. */
+#chat button[aria-label="Undo"] { display: none !important; }
+#chat [class*="message-buttons"] [class*="icon-button-wrapper"] {
+  border: none !important; background: transparent !important; box-shadow: none !important;
+  gap: 2px !important;
+}
+#chat [class*="message-buttons"] [class*="icon-button-wrapper"] > :not(button) { display: none !important; }
+#chat [class*="message-buttons"] button {
+  color: #8a8f99 !important; background: transparent !important; border: none !important;
+  border-radius: 8px !important; padding: 5px !important;
+}
+#chat [class*="message-buttons"] button svg { width: 17px !important; height: 17px !important; }
+#chat [class*="message-buttons"] button:hover { color: var(--navy) !important; background: #f1ece0 !important; }
+#chat [class*="message-buttons"] button[aria-pressed="true"],
+#chat [class*="message-buttons"] button.selected { color: var(--gold) !important; }
+#chat [class*="message-buttons"] *::before,
+#chat [class*="message-buttons"] *::after { content: none !important; display: none !important; }
+#chat [class*="message-buttons"] button { border-inline: none !important; }

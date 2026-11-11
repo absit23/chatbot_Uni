@@ -43,6 +43,13 @@ def save_to_archive(visitor: str, question: str, answer: str, route: str) -> Non
         print(f"[archive failed] {error}")
 
 
+def save_feedback(data: gr.LikeData, request: gr.Request) -> None:
+    """A visitor pressed 👍 or 👎 under an answer."""
+    answer = text_of(data.value)
+    route = "feedback/like" if data.liked else "feedback/dislike"
+    save_to_archive(request.session_hash or "unknown", f"[feedback on message {data.index}]", answer, route)
+
+
 def limit_message(visitor: str) -> str | None:
     if today["date"] != date.today():
         today.update(date=date.today(), count=0)
@@ -199,24 +206,29 @@ with gr.Blocks(title="المساعد الذكي للقبول - الجامعة ا
     gr.HTML(HEADER, elem_id="uni-header-box", padding=False)
     # api_visibility="private": nobody can call the bot from their own code and
     # skip the website (and its limits); only the chat page can use it.
+    chatbot = gr.Chatbot(
+        # The chat fills the screen height under the header, on laptops and phones.
+        elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
+        render=False,  # placed inside the ChatInterface below
+        buttons=["copy"],  # only a copy button on each message: no share or delete
+        feedback_options=("Like", "Dislike"),
+        avatar_images=(None, str(LOGO_FILE)),
+        placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
+    )
     gr.ChatInterface(
         fn=chat,
         examples=EXAMPLES,
         cache_examples=False,
         api_visibility="private",
         show_progress="hidden",  # no seconds counter: a friendly "searching…" message is shown instead
-        chatbot=gr.Chatbot(
-            # The chat fills the screen height under the header, on laptops and phones.
-            elem_id="chat", show_label=False, rtl=True, height="calc(100dvh - 330px)", min_height=380,
-            buttons=["copy"],  # only a copy button on each message: no share or delete
-            avatar_images=(None, str(LOGO_FILE)),
-            placeholder="<div style='text-align:center;color:#0b2350;font-weight:700'>اسأل عن القبول في الجامعة الإسلامية - فرع بابل</div>",
-        ),
+        chatbot=chatbot,
         textbox=gr.Textbox(
             elem_id="ask", rtl=True, show_label=False, submit_btn=True,
             placeholder="اكتب سؤالك هنا… مثال: معدلي 62 علمي",
         ),
     )
+    # 👍 / 👎 under each answer: saved to the chat archive to see which answers need fixing.
+    chatbot.like(save_feedback, inputs=None, outputs=None, api_visibility="private")
     gr.HTML(NOTE, elem_id="note-box", padding=False)
 
 if __name__ == "__main__":
