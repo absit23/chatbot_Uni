@@ -12,14 +12,31 @@ from sentence_transformers import SentenceTransformer
 
 import llm
 from config import ADMISSION_CONTACT, ASSISTANT_ROLE, CANDIDATES, COLLECTION, DB_DIR, DOCUMENT_NAME, EMBED_MODEL, TOP_K, UNIVERSITY_K, UNIVERSITY_NAME
-from textutils import tokenize
+from textutils import normalize, tokenize
+
+# Iraqi dialect words that the guide writes differently. Added to the search only.
+SEARCH_SYNONYMS = {
+    "ارسب": "الرسوب سنتين ترقين القيد", "رسبت": "الرسوب ترقين القيد", "راسب": "الرسوب ترقين القيد",
+    "اعيد": "الرسوب اعادة السنة", "انقل": "النقل انتقال الطلبة", "احول": "النقل انتقال تغيير القسم",
+    "اكدر": "يحق يمكن", "اگدر": "يحق يمكن", "شكد": "كم", "اشكد": "كم", "فلوس": "الاجور القسط",
+    "دوام": "الدوام الصباحي المسائي", "اسجل": "التقديم التسجيل", "اقدم": "التقديم",
+    "شهيد": "ذوي الشهداء تخفيض", "موظف": "الموظفين", "سجين": "السجناء السياسيين",
+}
+
+
+def _expand(question: str) -> str:
+    words = [w.strip("؟?.,،!") for w in normalize(question).split()]
+    extra = [SEARCH_SYNONYMS[w] for w in words if w in SEARCH_SYNONYMS]
+    return " ".join([question, *extra])
 
 SYSTEM_PROMPT = f"""أنت {ASSISTANT_ROLE}، وتتكلم باسم {UNIVERSITY_NAME}.
 لديك مصدران: معلومات {UNIVERSITY_NAME}، و"{DOCUMENT_NAME}" الذي يخص كل الجامعات والكليات الأهلية العراقية.
 
 أسلوب الجواب:
 - أنت مساعد ذكي (برنامج)، فلا تقل أبداً إنك موظف أو إنسان.
-- لا تعرّف بنفسك في أجوبتك. فقط إذا سلّم عليك المستخدم أو سألك "من أنت؟"، قل مرة واحدة إنك "المساعد الذكي للقبول في {UNIVERSITY_NAME}". وفي باقي الأسئلة ابدأ بالجواب مباشرة.
+- لا تعرّف بنفسك أبداً ولا تبدأ بـ "أنا المساعد..."، بل ابدأ بالجواب مباشرة.
+- إذا أُرفقت محادثة سابقة، فالسؤال الجديد قد يكمل عليها (مثل "وكم أجوره؟" أو "وأخي؟")، فافهمه في سياقها ولا تكرر ما قلته سابقاً.
+- أجب عن الحالة المحددة التي يسأل عنها المستخدم بالضبط (مثل "أخي شهيد" أو "أنا موظف")، ولا تسرد كل الحالات.
 - أجب بثقة ووضوح ومباشرة، مثل من يعرف الجامعة جيداً. لا تتردد ولا تستخدم عبارات مثل "بناءً على المقاطع" أو "إن وجدت" أو "قد" عندما تكون المعلومة واضحة.
 - اذكر اسم {UNIVERSITY_NAME} في جوابك عندما يكون السؤال عن الجامعة، مثل: "في {UNIVERSITY_NAME}، أجور قسم القانون...".
 - لا تذكر كلمة "المقاطع" ولا تكتب "(معلومات الجامعة)" ولا تضف في النهاية دعوة لمراجعة الجامعة أو الاتصال بها.
@@ -93,18 +110,21 @@ def _label(chunk: dict) -> str:
     return f"[من الدليل الوزاري، صفحة {chunk['page']}]"
 
 
-def answer(question: str, previous_question: str = "") -> dict:
-    """previous_question helps short follow-ups like "كم أجوره؟" know what "it" is."""
+def answer(question: str, previous_question: str = "", previous_answer: str = "") -> dict:
+    """The previous exchange helps short follow-ups like "كم أجوره؟" know what "it" is."""
     # Always search with the question itself, so a new topic ("ما هي التخفيضات؟")
     # is never drowned out by the previous one. For short follow-ups, also add a
     # few chunks found together with the previous question.
-    chunks = retrieve(question)
+    chunks = retrieve(_expand(question))
     if previous_question and len(tokenize(question)) <= 4:
         seen = {c["id"] for c in chunks}
-        extra = [c for c in retrieve(f"{previous_question} {question}") if c["id"] not in seen]
+        extra = [c for c in retrieve(_expand(f"{previous_question} {question}")) if c["id"] not in seen]
         chunks += extra[:3]
     context = "\n\n".join(f"{_label(c)}\n{c['text']}" for c in chunks)
-    earlier = f"السؤال السابق للمستخدم (للسياق فقط): {previous_question}\n" if previous_question else ""
+    earlier = ""
+    if previous_question:
+        reply = previous_answer[:700] + ("..." if len(previous_answer) > 700 else "")
+        earlier = f"المحادثة السابقة (للسياق فقط):\nالمستخدم: {previous_question}\nأنت: {reply}\n\n"
     today = f"تاريخ اليوم: {date.today():%d/%m/%Y}\n"  # so "has applying ended?" can be answered
     prompt = f"المعلومات:\n{context}\n\n{today}{earlier}السؤال: {question}"
     text, provider = llm.ask(SYSTEM_PROMPT, prompt)

@@ -211,3 +211,34 @@ def test_history_pin_rename_delete():
 def test_history_titles_are_escaped():
     store, cid = history.save([], None, [say("<script>x</script>"), bot("y")])
     assert "<script>" not in history.render(store, cid)
+
+
+# ---------- Small talk, specific questions, department groups (11 Nov test) ----------
+import smalltalk  # noqa: E402
+
+
+def test_small_talk_replies():
+    assert "وعليكم السلام" in smalltalk.answer("السلام عليكم")
+    assert "العفو" in smalltalk.answer("احسنت") or "شكراً" in smalltalk.answer("احسنت") or "يسعدني" in smalltalk.answer("احسنت")
+    assert "لست موظفاً" in smalltalk.answer("انت انسان؟")
+    assert "أعتذر" in smalltalk.answer("انت غبي")
+    assert "لم أفهم" in smalltalk.answer("؟؟")
+
+
+def test_small_talk_leaves_real_questions():
+    for q in ["مرحبا كم اجور القانون؟", "شكرا، وما الوثائق المطلوبة؟", "معدلي 70 علمي", "هل يوجد قسم صيدلة؟"]:
+        assert smalltalk.answer(q) is None, q
+
+
+def test_specific_discount_question_goes_to_ai():
+    assert faq.answer("ما هي التخفيضات؟") is not None
+    assert faq.answer("شنو التخفيضات") is not None
+    assert faq.answer("اخوي شهيد كم الخصم") is None
+    assert faq.answer("هل يوجد تخفيض لأبناء الموظفين؟") is None
+
+
+def test_department_groups():
+    text, _ = eligibility.handle("معدلي 70 علمي وأريد فقط الاقسام الانسانية", [])
+    assert "القانون" in text and "هندسة" not in text
+    text, _ = eligibility.handle("معدلي 80 احيائي شنو الاقسام الطبية", [])
+    assert "المختبرات" in text and "القانون" not in text

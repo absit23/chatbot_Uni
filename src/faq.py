@@ -77,7 +77,7 @@ ANSWERS = {
     "documents": documents,
 }
 
-# Exact button texts, and simple word patterns for the same questions typed by hand.
+# Exact button texts.
 BUTTONS = {
     "أين تقع الجامعة؟": "location",
     "ما الأقسام الموجودة في الجامعة؟": "departments",
@@ -85,24 +85,27 @@ BUTTONS = {
     "ما هي التخفيضات؟": "discounts",
     "ما الوثائق المطلوبة للتسجيل؟": "documents",
 }
-PATTERNS = [
-    ("location", {"تقع", "موقع", "عنوان", "مكان", "وين", "اين"}, {"جامعه"}),
-    ("documents", {"وثائق", "مستمسكات", "اوراق", "مستندات"}, set()),
-    ("discounts", {"تخفيضات", "تخفيض", "خصم", "خصومات"}, set()),
-]
-# Questions that need a more specific answer than the fixed list go to the AI.
-SPECIFIC_WORDS = {"تقسيط", "اقساط", "دفع", "موعد", "تاريخ"}
+# A typed question gets a fixed answer only if it is GENERAL (all its words are
+# topic words or filler). "اخوي شهيد كم الخصم؟" has specific details, so the AI
+# answers that exact case instead of dumping the whole list.
+FILLER = {"شنو", "شني", "اكو", "يوجد", "توجد", "موجود", "موجوده", "عندكم", "لديكم", "ماهي", "ماهو",
+          "ممكن", "اعرف", "اريد", "ابي", "مطلوبه", "مطلوب", "تسجيل", "للتسجيل", "جامعه", "جامعتكم",
+          "وين", "اين", "تقع", "بالضبط", "انتم", "الجامعه", "دراسه", "جميع", "كل", "هناك", "شلون"}
+TOPICS = {
+    "location": {"موقع", "عنوان", "مكان", "تقع", "وين", "اين", "لوكيشن"},
+    "documents": {"وثائق", "مستمسكات", "اوراق", "مستندات", "اوراقي"},
+    "discounts": {"تخفيضات", "تخفيض", "خصم", "خصومات"},
+    "fees": {"اجور", "اقساط", "قسط", "الاجور"},
+}
 
 
 def answer(message: str) -> str | None:
-    """A fixed answer, or None to let the calculator or AI answer."""
+    """A fixed answer for a button or a general question, or None to let the calculator or AI answer."""
     key = BUTTONS.get(message.strip())
     if key is None:
         words = set(tokenize(message))
-        if words & SPECIFIC_WORDS:
-            return None
-        for name, any_of, also in PATTERNS:
-            if words & any_of and (not also or words & also or len(words) <= 3):
+        for name, topic_words in TOPICS.items():
+            if words & topic_words and words <= (topic_words | FILLER):
                 key = name
                 break
     return ANSWERS[key]() if key else None

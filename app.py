@@ -14,6 +14,7 @@ import eligibility  # noqa: E402
 import faq  # noqa: E402
 import history  # noqa: E402
 import rag  # noqa: E402
+import smalltalk  # noqa: E402
 from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
 from textutils import text_of  # noqa: E402
@@ -130,6 +131,12 @@ def chat(message: str, history: list, request: gr.Request):
         yield text
         return
 
+    social = smalltalk.answer(message)
+    if social:
+        save_to_archive(visitor, message, social, "smalltalk")
+        yield with_buttons(social, next_suggestions(history, message))
+        return
+
     fixed = faq.answer(message)
     if fixed and not eligibility.handle(message, history):
         save_to_archive(visitor, message, fixed, "fixed")
@@ -145,8 +152,10 @@ def chat(message: str, history: list, request: gr.Request):
 
     yield THINKING  # shown only while the AI works (1-3 seconds); the answer replaces it
     try:
-        previous = [text_of(i.get("content")) for i in history or [] if isinstance(i, dict) and i.get("role") == "user"]
-        result = rag.answer(message, previous[-1] if previous else "")
+        turns = [i for i in history or [] if isinstance(i, dict)]
+        asked = [text_of(i.get("content")) for i in turns if i.get("role") == "user"]
+        replies = [text_of(i.get("content")) for i in turns if i.get("role") == "assistant" and not (i.get("metadata") or {}).get("title")]
+        result = rag.answer(message, asked[-1] if asked else "", replies[-1] if replies else "")
     except NoProviderAvailable as error:
         print(f"[all providers failed] {error}")
         save_to_archive(visitor, message, "", "failed")

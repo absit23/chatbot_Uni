@@ -3,17 +3,17 @@ from google import genai
 from google.genai import types
 from groq import Groq
 
-from config import GEMINI_API_KEY, GEMINI_MODEL, GROQ_API_KEY, GROQ_MODEL
+from config import GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, GEMINI_MODEL, GROQ_API_KEY, GROQ_MODEL
 
 
 class NoProviderAvailable(Exception):
     """Every configured API failed, for example because free limits ran out."""
 
 
-def _ask_gemini(system: str, prompt: str) -> str:
+def _ask_gemini(system: str, prompt: str, model: str) -> str:
     client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
-        model=GEMINI_MODEL,
+        model=model,
         contents=prompt,
         config=types.GenerateContentConfig(system_instruction=system, temperature=0.1),
     )
@@ -36,7 +36,9 @@ def ask(system: str, prompt: str) -> tuple[str, str]:
     """Return (answer, name of the provider that answered)."""
     providers = []
     if GEMINI_API_KEY:
-        providers.append(("Gemini", _ask_gemini))
+        # The main model first; when its daily free limit runs out, the lighter model with a bigger limit.
+        for model in dict.fromkeys(m for m in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL) if m):
+            providers.append((model, lambda s, p, m=model: _ask_gemini(s, p, m)))
     if GROQ_API_KEY:
         providers.append(("Groq", _ask_groq))
     if not providers:

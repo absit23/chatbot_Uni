@@ -23,7 +23,17 @@ GRADE_WORDS = {"معدل", "معدلي", "درجتي", "درجه", "درجات",
 QUESTION_WORDS = {"اقسام", "قسم", "يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم", "يقبلني", "يقبل", "مقبول", "متاح", "متاحه"}
 # Words that mean "use the grade I already gave you" in a follow-up like "ماذا يقبل معدلي ايضا؟"
 ACCEPT_WORDS = {"يقبل", "يقبلني", "يقبلوني", "مايقبل", "ميقبل", "مايقبلني", "ميقبلني", "ينقبل", "انقبل"}
-CATEGORY_WORDS = {"هندسه": "هندسة", "الهندسه": "هندسة", "هندسيه": "هندسة", "الهندسيه": "هندسة"}
+# Group words like "الأقسام الإنسانية" or "الهندسية" mean a set of departments.
+ENGINEERING = ("هندسة",)
+MEDICAL = ("الطبية", "المختبرات", "الكلى")
+HUMANITIES = ("القانون", "اللغة", "الدراسات", "المالية")
+CATEGORIES = {
+    "هندسه": ENGINEERING, "هندسيه": ENGINEERING, "الهندسه": ENGINEERING, "الهندسيه": ENGINEERING,
+    "طبيه": MEDICAL, "الطبيه": MEDICAL, "طبي": MEDICAL, "الطبي": MEDICAL, "صحيه": MEDICAL, "الصحيه": MEDICAL,
+    "انسانيه": HUMANITIES, "الانسانيه": HUMANITIES, "ادبيه": HUMANITIES, "الادبيه": HUMANITIES,
+    "علميه": ENGINEERING + MEDICAL, "العلميه": ENGINEERING + MEDICAL,
+    "اسلاميه": ("الدراسات القرآنية", "المصرفية الإسلامية"), "الاسلاميه": ("الدراسات القرآنية", "المصرفية الإسلامية"),
+}
 # "يحق لي" or "اكدر" alone are too general ("هل يحق لي ترك سنة؟"), so they only
 # count as a grade follow-up when the message also names a department or departments.
 CAN_WORDS = {"يحق", "اقدر", "اكدر", "اگدر", "اسجل", "اقدم"}
@@ -159,9 +169,11 @@ def _read(text: str) -> dict:
     overlap = {id(d): len(d["name_words"] & words) for d in DEPARTMENTS}
     best = max(overlap.values())
     wanted = [d for d in DEPARTMENTS if best and overlap[id(d)] == best]
-    category = next((CATEGORY_WORDS[w] for w in normalize(text).split() if w.strip("؟?") in CATEGORY_WORDS), None)
-    if not wanted and category:  # "هندسة ما يقبل؟" means all engineering departments
-        wanted = [d for d in DEPARTMENTS if category in d["department"]]
+    group_words = [x.strip("؟?.,،") for x in normalize(text).split()]
+    group_words += [w[1:] for w in group_words if w.startswith("و")]  # "والطبية" -> "الطبية"
+    category = next((CATEGORIES[w] for w in group_words if w in CATEGORIES), None)
+    if not wanted and category:  # "الأقسام الإنسانية" or "هندسة ما يقبل؟" means a group of departments
+        wanted = [d for d in DEPARTMENTS if any(part in d["department"] for part in category)]
     elsewhere = []
     if not wanted and GUIDE_ROWS:
         guide_overlap = {id(r): len(r["name_words"] & words) for r in GUIDE_ROWS}
