@@ -1,0 +1,20 @@
+# Secrets: NEVER upload these
+.env
+
+# Built by src/ingest.py, can be recreated at any time
+db/
+
+# Chat archive: visitors' questions stay on this laptop only
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.gradio/
+.pytest_cache/
+
+# Teaching staff list: kept on this laptop only (personal names, public repo)
+data/university/staff.csv
+*.xlsx
