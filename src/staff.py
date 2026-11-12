@@ -204,6 +204,29 @@ GROUPS = {
 STAFF_REPLY_STARTS = ("الكادر التدريسي", "معلومات التدريسي", "التدريسيون في")
 
 
+TALK_WORDS = {"اسمي", "خمن", "تخمين", "اختصاصي", "تدريسي", "التدريسي", "تدريسيه", "التدريسيه", "استاذ",
+              "دكتور", "دكتوره", "ست", "استاذه"}
+
+
+def context_for_ai(*messages: str) -> str:
+    """The staff list as text for the AI, only when the conversation is about the staff.
+
+    Fixed staff answers cover direct questions; this lets the AI also handle chat
+    such as "guess who I am: AI specialist, my name starts with ع" using real names only.
+    """
+    if not STAFF:
+        return ""
+    words = set()
+    for m in messages:
+        words |= set(re.findall("[ء-ي]+", normalize(m)))
+    if not words & (TALK_WORDS | STAFF_WORDS | PLURAL_STAFF_WORDS | SPECIALTY_WORDS) and not any(
+            _people_named(normalize(m)) for m in messages):
+        return ""
+    people = list({_key(p): p for p in STAFF}.values())
+    lines = [_line(p, with_department=True).lstrip("• ") for p in people]
+    return f"[قائمة الكادر التدريسي في {UNIVERSITY_NAME}، وهي المصدر الوحيد لأسماء التدريسيين]\n" + "\n".join(lines)
+
+
 def handle(message: str, last_reply: str = "") -> str | None:
     """A staff answer, or None when the message is not about the teaching staff.
 

@@ -347,3 +347,9 @@ def test_staff_name_in_a_remark_goes_to_the_ai(fake_staff):
     assert staff.handle("لوكي ماتنلام بيك ست دينا علي من ماتستخدمك") is None
     assert "دينا علي كريم" in staff.handle("تعرف دينا علي؟")
     assert "دينا علي كريم" in staff.handle("دينا علي كريم")
+
+
+def test_staff_list_reaches_the_ai_only_for_staff_talk(fake_staff):
+    info = staff.context_for_ai("اي شنو اسمي خمن؟", "اني اختصاصي ذكاء اصطناعي")
+    assert "ليث حسين جواد" in info and "أ.د" not in info
+    assert staff.context_for_ai("كم اجور القانون؟") == ""

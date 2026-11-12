@@ -195,7 +195,8 @@ def chat(message: str, history: list, request: gr.Request):
         turns = [i for i in history or [] if isinstance(i, dict)]
         asked = [text_of(i.get("content")) for i in turns if i.get("role") == "user"]
         replies = [text_of(i.get("content")) for i in turns if i.get("role") == "assistant" and not (i.get("metadata") or {}).get("title")]
-        result = rag.answer(message, asked[-1] if asked else "", replies[-1] if replies else "")
+        staff_info = staff.context_for_ai(message, *asked[-2:])
+        result = rag.answer(message, asked[-1] if asked else "", replies[-1] if replies else "", staff_info)
     except NoProviderAvailable as error:
         print(f"[all providers failed] {error}")
         save_to_archive(visitor, message, "", "failed")
