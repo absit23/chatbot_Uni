@@ -334,3 +334,10 @@ def test_staff_follow_up_and_clean_names(fake_staff):
     assert "سامر خالد حسن: أستاذ" in staff.handle("القانون", summary)  # no "أ.د" before the name
     assert staff.handle("القانون") is None  # without a staff answer before it, "القانون" is about admission
     assert "دينا علي كريم" in staff.handle("من هي دينا علي؟")  # "؟" right after the name
+
+
+def test_staff_tool_leaves_chatty_messages_to_the_ai(fake_staff):
+    chat = "هذه التدريسية ماتعترف بيك كاداة ذكاء وتكول هذا واحد غبي. شنو تحب تكول الها وها بالمناسبة هي ماتعترف بالذكاء الاصطناعي"
+    assert staff.handle(chat, "معلومات التدريسي في الجامعة") is None
+    assert staff.handle("التدريسية تحب الذكاء الاصطناعي") is None  # no "who/specialty" question
+    assert "ليث" in staff.handle("منو التدريسيين المتخصصين بالذكاء الاصطناعي")

@@ -56,6 +56,9 @@ STAFF_WORDS = {"تدريسي", "تدريسيين", "التدريسيين", "تد
                "اختصاصه", "اختصاصها", "تدريسيات"}
 WHO_TEACHES = re.compile(r"(منو|من|مين|اكو|يوجد|هل)\s+(يدرس|يدرسنا|يدرسون|دكتور|استاذ|تدريسي)")
 NAME_PREFIX = re.compile(r"^[\s.]*((ا|أ)\s*\.?\s*(م\s*\.?\s*)?د|م\s*\.?\s*م|م\s*\.?\s*د|ا\s*\.?\s*م|د)(\s*\.\s*|\s+)(?=[ء-ي])")
+PLURAL_STAFF_WORDS = {"تدريسيين", "التدريسيين", "اساتذه", "الاساتذه", "دكاتره", "الدكاتره", "كادر", "الكادر",
+                      "مدرسين", "المدرسين", "تدريسيات", "الهيئه"}
+SPECIALTY_WORDS = {"اختصاص", "اختصاصه", "اختصاصها", "تخصص", "تخصصه", "متخصص", "متخصصين", "يدرس", "يدرسون"}
 GENERIC_SPECIALTY = {"علوم", "العلوم", "اللغه", "هندسه", "تقنيات", "الهندسه", "قسم", "في", "عن", "و"}
 
 
@@ -183,7 +186,7 @@ def _by_specialty(text: str) -> list[dict]:
     for person in STAFF:
         specialty = normalize(f"{person['general']} {person['specific']}")
         hits = [w for w in words if w in specialty]
-        if hits and len(hits) >= min(2, len(words)) and all(p["name"] != person["name"] for p in found):
+        if hits and len(hits) >= min(2, len(words)) and all(_key(p) != _key(person) for p in found):
             found.append(person)
     return found
 
@@ -209,6 +212,8 @@ def handle(message: str, last_reply: str = "") -> str | None:
     text = " ".join(re.findall("[ء-ي0-9]+", normalize(message)))  # no "؟" or dots
     words = set(text.split())
     follow_up = last_reply.startswith(STAFF_REPLY_STARTS) and len(words) <= 5
+    if len(text.split()) > 9:
+        return None  # a long chatty message (opinions, stories) is for the AI, not a staff list
 
     named = _people_named(text)
     if named:
@@ -238,12 +243,15 @@ def handle(message: str, last_reply: str = "") -> str | None:
                          + "\n".join(_line(p) for p in people))
         return "\n\n".join(parts)
 
-    specialists = _by_specialty(text)
+    asks_specialty = words & SPECIALTY_WORDS or WHO_TEACHES.search(text)
+    specialists = _by_specialty(text) if asks_specialty else []
     if specialists and len(specialists) <= 15:
         return (f"التدريسيون في {UNIVERSITY_NAME} المتخصصون بما سألت عنه:\n"
                 + "\n".join(_line(p, with_department=True) for p in specialists))
 
     # General question: a summary of all departments
+    if not words & (PLURAL_STAFF_WORDS | {"كم", "عدد"}):
+        return None  # "التدريسية الفلانية..." is a remark for the AI, not a request for the whole list
     unique = list({_key(p): p for p in STAFF}.values())
     lines = [f"• {d}: {_counts([p for p in STAFF if p['department'] == d])}"
              for d in dict.fromkeys(p["department"] for p in STAFF)]
