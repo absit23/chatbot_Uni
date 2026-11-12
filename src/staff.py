@@ -58,6 +58,8 @@ WHO_TEACHES = re.compile(r"(منو|من|مين|اكو|يوجد|هل)\s+(يدرس
 NAME_PREFIX = re.compile(r"^[\s.]*((ا|أ)\s*\.?\s*(م\s*\.?\s*)?د|م\s*\.?\s*م|م\s*\.?\s*د|ا\s*\.?\s*م|د)(\s*\.\s*|\s+)(?=[ء-ي])")
 PLURAL_STAFF_WORDS = {"تدريسيين", "التدريسيين", "اساتذه", "الاساتذه", "دكاتره", "الدكاتره", "كادر", "الكادر",
                       "مدرسين", "المدرسين", "تدريسيات", "الهيئه"}
+ASK_WORDS = {"منو", "مين", "تعرف", "تعرفه", "تعرفها", "شنو", "معلومات", "اختصاص", "اختصاصه", "اختصاصها",
+             "قسمه", "قسمها", "وين", "لقب", "لقبه", "لقبها", "شهاده", "شهادته", "شهادتها"}
 SPECIALTY_WORDS = {"اختصاص", "اختصاصه", "اختصاصها", "تخصص", "تخصصه", "متخصص", "متخصصين", "يدرس", "يدرسون"}
 GENERIC_SPECIALTY = {"علوم", "العلوم", "اللغه", "هندسه", "تقنيات", "الهندسه", "قسم", "في", "عن", "و"}
 
@@ -217,6 +219,9 @@ def handle(message: str, last_reply: str = "") -> str | None:
         return None  # a long chatty message (opinions, stories) is for the AI, not a staff list
 
     named = _people_named(text)
+    # "منو زينب ثامر؟" asks for her details; a longer remark that only mentions her is chat for the AI
+    if named and len(text.split()) > len(_bare_name(named[0]["name"]).split()) + 2 and not words & ASK_WORDS:
+        named = []
     if named:
         lines = []
         for person in named:

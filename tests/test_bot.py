@@ -341,3 +341,9 @@ def test_staff_tool_leaves_chatty_messages_to_the_ai(fake_staff):
     assert staff.handle(chat, "معلومات التدريسي في الجامعة") is None
     assert staff.handle("التدريسية تحب الذكاء الاصطناعي") is None  # no "who/specialty" question
     assert "ليث" in staff.handle("منو التدريسيين المتخصصين بالذكاء الاصطناعي")
+
+
+def test_staff_name_in_a_remark_goes_to_the_ai(fake_staff):
+    assert staff.handle("لوكي ماتنلام بيك ست دينا علي من ماتستخدمك") is None
+    assert "دينا علي كريم" in staff.handle("تعرف دينا علي؟")
+    assert "دينا علي كريم" in staff.handle("دينا علي كريم")
