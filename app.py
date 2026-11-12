@@ -16,6 +16,11 @@ import history  # noqa: E402
 import rag  # noqa: E402
 import smalltalk  # noqa: E402
 import staff  # noqa: E402
+
+if not staff.STAFF:
+    print("NOTE: no teaching staff list. Run:  python src/staff.py import \"your_file.xlsx\"")
+else:
+    print(f"Teaching staff list: {len(staff.STAFF)} rows loaded.")
 from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
 from textutils import text_of  # noqa: E402
