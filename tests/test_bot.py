@@ -392,3 +392,11 @@ def test_love_and_compliments_get_polite_replies():
 def test_cheating_rules_are_written_plainly():
     info = (Path(__file__).parent.parent / "data" / "university" / "info.md").read_text(encoding="utf-8")
     assert "في الامتحانات النهائية: يُعدّ راسباً في جميع مواد تلك السنة" in info
+
+
+def test_cheating_and_failing_rules_are_fixed_answers():
+    for q in ["ماهي عقوبة الغش؟", "اذا غشيت شنو العقوبة؟", "شنو يصير اذا غشيت بالامتحان النهائي"]:
+        assert "جميع مواد تلك السنة" in faq.answer(q), q
+    for q in ["كم سنة يحق لي ارسب؟", "متى يرقن قيد الطالب؟"]:
+        assert "سنتين متتاليتين" in faq.answer(q), q
+    assert faq.answer("راسب بمادة شلون الدور الثاني") is None

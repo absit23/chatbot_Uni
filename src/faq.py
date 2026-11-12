@@ -99,9 +99,31 @@ TOPICS = {
 }
 
 
+# Rules the small AI model got wrong (it reversed their meaning), so they are always
+# answered with the plain summary written in info.md, never re-worded by the AI.
+def _rule(start: str) -> str:
+    title = next(t for t in _sections() if t.startswith(start))
+    return f"**{title}**\n{_section(start)}"
+
+
+RULES = {
+    "cheating": (lambda words: bool(words & {"غش", "الغش", "غشيت", "اغش", "غشاش", "يغش", "بالغش", "للغش"}),
+                 lambda: _rule("عقوبة الغش")),
+    "failing": (lambda words: bool(words & {"ترقين", "يرقن", "يترقن", "ترقن", "يرقنون"}) or (
+                    bool(words & {"ارسب", "رسوب", "رسبت", "راسب", "يرسب", "الرسوب"})
+                    and bool(words & {"كم", "سنه", "سنتين", "سنوات", "مرات", "مره", "متى", "يحق"})),
+                lambda: _rule("الرسوب وترقين القيد")),
+}
+
+
 def answer(message: str) -> str | None:
     """A fixed answer for a button or a general question, or None to let the calculator or AI answer."""
     key = BUTTONS.get(message.strip())
+    words = set(tokenize(message)) | set(normalize(message).split())
+    if key is None and len(words) <= 12:
+        for matches, rule in RULES.values():
+            if matches(words):
+                return rule()
     if key is None:
         words = set(tokenize(message))
         for name, topic_words in TOPICS.items():
