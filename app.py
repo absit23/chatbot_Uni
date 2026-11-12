@@ -416,6 +416,7 @@ with gr.Blocks(title="المساعد الذكي - الجامعة الإسلام�
                 chatbot=chatbot,
                 textbox=gr.Textbox(
                     elem_id="ask", rtl=True, show_label=False, submit_btn=True,
+                    stop_btn=True,  # while the bot answers, a stop button takes the send button's place
                     placeholder="اكتب سؤالك هنا… مثال: معدلي 62 علمي",
                 ),
             )
