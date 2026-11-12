@@ -230,8 +230,27 @@ def handle(message: str) -> str | None:
             + "\n\nاكتب اسم القسم لعرض أسماء تدريسييه، مثل: تدريسيين قسم القانون.")
 
 
-if __name__ == "__main__":
-    if len(sys.argv) == 3 and sys.argv[1] == "import":
-        print(f"Saved {import_excel(sys.argv[2])} staff rows to {STAFF_FILE}")
+def _find_excel(given: str | None) -> Path | None:
+    """The file named, or else the only .xlsx file in the project folder."""
+    if given and Path(given).exists():
+        return Path(given)
+    found = sorted(Path(__file__).parent.parent.glob("*.xlsx"))
+    if given:
+        print(f"Not found: {given}")
+    if len(found) == 1:
+        print(f"Using the Excel file in the project folder: {found[0].name}")
+        return found[0]
+    if found:
+        print("Several Excel files found, name one of them:", ", ".join(f.name for f in found))
     else:
-        print('Usage: python src/staff.py import "path/to/staff.xlsx"')
+        print("No .xlsx file in the project folder. Put the staff Excel file next to app.py.")
+    return None
+
+
+if __name__ == "__main__":
+    if len(sys.argv) in (2, 3) and sys.argv[1] == "import":
+        excel = _find_excel(sys.argv[2] if len(sys.argv) == 3 else None)
+        if excel:
+            print(f"Saved {import_excel(str(excel))} staff rows to {STAFF_FILE}")
+    else:
+        print('Usage: python src/staff.py import  [path/to/staff.xlsx]')
