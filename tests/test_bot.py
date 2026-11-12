@@ -364,3 +364,20 @@ def test_no_opinions_about_teachers(fake_staff):
     for q in ["شنو رايك بليث حسين؟", "ليث حسين غبي", "ليث حسين زين؟"]:
         text = staff.handle(q)
         assert text and "محل احترام" in text and "ليث حسين جواد" in text, q
+
+
+def test_opinion_follow_up_about_a_teacher(fake_staff):
+    previous = "ليث حسين جواد هو مدرس، دكتوراه، هندسة الحاسبات، قسم هندسة تقنيات الحاسوب."
+    assert "محل احترام" in staff.handle("هل هو ذكي؟", previous)
+    assert staff.handle("هل هو ذكي؟", "الأجور 2,000,000 دينار") is None
+
+
+def test_greeting_wording_and_iraqi_insults():
+    assert "لـال" not in smalltalk.answer("السلام عليكم")
+    assert "أعتذر" in smalltalk.answer("مطي") and "أعتذر" in smalltalk.answer("انجب")
+
+
+def test_staff_follow_up_words_are_not_opinions(fake_staff):
+    summary = staff.handle("هل تعرف الكادر التدريسي؟")
+    assert "محل احترام" not in staff.handle("طيب الهندسة", summary)
+    assert staff.handle("مو هذا قصدي", "ليث حسين جواد هو مدرس") is None

@@ -58,8 +58,10 @@ WHO_TEACHES = re.compile(r"(منو|من|مين|اكو|يوجد|هل)\s+(يدرس
 NAME_PREFIX = re.compile(r"^[\s.]*((ا|أ)\s*\.?\s*(م\s*\.?\s*)?د|م\s*\.?\s*م|م\s*\.?\s*د|ا\s*\.?\s*م|د)(\s*\.\s*|\s+)(?=[ء-ي])")
 PLURAL_STAFF_WORDS = {"تدريسيين", "التدريسيين", "اساتذه", "الاساتذه", "دكاتره", "الدكاتره", "كادر", "الكادر",
                       "مدرسين", "المدرسين", "تدريسيات", "الهيئه"}
-OPINION_WORDS = {"رايك", "شرايك", "رأيك", "تقييمك", "تقيمه", "تقيم", "زين", "شين", "غبي", "فاشل", "ممتاز",
+OPINION_WORDS = {"ذكي", "ذكيه", "شاطره", "نشيط", "رايك", "شرايك", "رأيك", "تقييمك", "تقيمه", "تقيم", "زين", "شين", "غبي", "فاشل", "ممتاز",
                  "شاطر", "كفو", "سيء", "سيئ", "يفهم", "مايفهم", "تحبه", "تحبها", "خوش", "مو"}
+CLEAR_OPINION_WORDS = {"رايك", "شرايك", "رأيك", "تقييمك", "ذكي", "ذكيه", "غبي", "فاشل", "شاطر", "شاطره", "كفو",
+                       "يفهم", "مايفهم", "سيء", "سيئ"}
 ASK_WORDS = {"منو", "مين", "تعرف", "تعرفه", "تعرفها", "شنو", "معلومات", "اختصاص", "اختصاصه", "اختصاصها",
              "قسمه", "قسمها", "وين", "لقب", "لقبه", "لقبها", "شهاده", "شهادته", "شهادتها"}
 SPECIALTY_WORDS = {"اختصاص", "اختصاصه", "اختصاصها", "تخصص", "تخصصه", "متخصص", "متخصصين", "يدرس", "يدرسون"}
@@ -244,9 +246,13 @@ def handle(message: str, last_reply: str = "") -> str | None:
         return None  # a long chatty message (opinions, stories) is for the AI, not a staff list
 
     named = _people_named(text)
-    # Opinions about a real person are never given, in praise or blame
-    if named and words & OPINION_WORDS:
-        person = named[0]
+    # Opinions about a real person are never given, in praise or blame. "هل هو ذكي؟" right
+    # after an answer about a teacher is about that teacher too.
+    earlier = _people_named(normalize(last_reply)) if len(words) <= 6 else []
+    earlier = earlier if len(earlier) <= 2 and words & CLEAR_OPINION_WORDS else []  # not after a whole list
+    talked_about = named or earlier
+    if talked_about and words & OPINION_WORDS:
+        person = talked_about[0]
         return (f"كل تدريسيي {UNIVERSITY_NAME} محل احترام وتقدير، وتقييمهم ليس من عملي 🙂 "
                 f"وهذه المعلومات المتوفرة:\n" + _line(person, with_department=True))
     # "منو زينب ثامر؟" asks for her details; a longer remark that only mentions her is chat for the AI
