@@ -381,3 +381,14 @@ def test_staff_follow_up_words_are_not_opinions(fake_staff):
     summary = staff.handle("هل تعرف الكادر التدريسي؟")
     assert "محل احترام" not in staff.handle("طيب الهندسة", summary)
     assert staff.handle("مو هذا قصدي", "ليث حسين جواد هو مدرس") is None
+
+
+def test_love_and_compliments_get_polite_replies():
+    assert "برنامج مساعد" in smalltalk.answer("احبك")
+    assert "شكراً" in smalltalk.answer("بس ماكتلك انت حلو!")
+    assert "عيونك" not in smalltalk.answer("احبك")
+
+
+def test_cheating_rules_are_written_plainly():
+    info = (Path(__file__).parent.parent / "data" / "university" / "info.md").read_text(encoding="utf-8")
+    assert "في الامتحانات النهائية: يُعدّ راسباً في جميع مواد تلك السنة" in info
