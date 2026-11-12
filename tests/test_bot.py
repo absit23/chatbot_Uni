@@ -326,3 +326,11 @@ def test_staff_name_prefixes():
     assert staff._bare_name("م.م. دعاء راهي سعدون") == "دعاء راهي سعدون"
     assert staff._bare_name("أ.م.د رحيم إبراهيم") == "رحيم ابراهيم"
     assert staff._bare_name("م م . علا مرزة") == "علا مرزه"
+
+
+def test_staff_follow_up_and_clean_names(fake_staff):
+    summary = staff.handle("هل تعرف الكادر التدريسي؟")
+    assert "ليث حسين جواد" in staff.handle("طيب الهندسة", summary)
+    assert "سامر خالد حسن: أستاذ" in staff.handle("القانون", summary)  # no "أ.د" before the name
+    assert staff.handle("القانون") is None  # without a staff answer before it, "القانون" is about admission
+    assert "دينا علي كريم" in staff.handle("من هي دينا علي؟")  # "؟" right after the name

@@ -120,13 +120,18 @@ def _bare_name(name: str) -> str:
     return normalize(NAME_PREFIX.sub("", name)).strip()
 
 
+def _display_name(name: str) -> str:
+    """The name without "م.م." / "أ.د": the title is written once, in words, after it."""
+    return _clean(NAME_PREFIX.sub("", name))
+
+
 def _line(person: dict, with_department: bool = False) -> str:
-    details = [person["degree"]] + ([person["title"]] if person["title"] else [])
+    details = ([person["title"]] if person["title"] else []) + [person["degree"]]
     specialty = person["general"] + (f" ({person['specific']})" if person["specific"] and person["specific"] != person["general"] else "")
     if specialty:
         details.append(specialty)
     where = f"، قسم {person['department']}" if with_department else ""
-    return f"• {person['name']}: {'، '.join(details)}{where}"
+    return f"• {_display_name(person['name'])}: {'، '.join(details)}{where}"
 
 
 def _key(person: dict) -> str:
@@ -183,12 +188,27 @@ def _by_specialty(text: str) -> list[dict]:
     return found
 
 
-def handle(message: str) -> str | None:
-    """A staff answer, or None when the message is not about the teaching staff."""
+# Group words: "الهندسة" alone means all engineering departments
+GROUPS = {
+    ("هندسه", "الهندسه", "هندسيه", "الهندسيه"): ["هندسة تقنيات الحاسوب", "هندسة تقنيات الأمن السيبراني",
+                                              "هندسة تقنيات الأجهزة الطبية"],
+    ("طبيه", "الطبيه", "صحيه", "الصحيه"): ["تقنيات المختبرات الطبية", "علوم الفيزياء الطبية",
+                                        "هندسة تقنيات الأجهزة الطبية", "تقنيات الكلى الصناعية"],
+}
+STAFF_REPLY_STARTS = ("الكادر التدريسي", "معلومات التدريسي", "التدريسيون في")
+
+
+def handle(message: str, last_reply: str = "") -> str | None:
+    """A staff answer, or None when the message is not about the teaching staff.
+
+    last_reply is the bot's previous answer: right after a staff answer, a short
+    follow-up like "القانون" or "طيب الهندسة" means that department's staff.
+    """
     if not STAFF:
         return None
-    text = normalize(message)
-    words = set(re.findall("[ء-ي]+", text))
+    text = " ".join(re.findall("[ء-ي0-9]+", normalize(message)))  # no "؟" or dots
+    words = set(text.split())
+    follow_up = last_reply.startswith(STAFF_REPLY_STARTS) and len(words) <= 5
 
     named = _people_named(text)
     if named:
@@ -199,12 +219,14 @@ def handle(message: str) -> str | None:
             lines.append(_line(person, with_department=True) + extra)
         return "معلومات التدريسي في " + UNIVERSITY_NAME + ":\n" + "\n".join(dict.fromkeys(lines))
 
-    if not (words & STAFF_WORDS or WHO_TEACHES.search(text)):
+    departments = _departments_in(text)
+    if not departments:
+        departments = next((d for keys, d in GROUPS.items() if words & set(keys)), [])
+    if not (words & STAFF_WORDS or WHO_TEACHES.search(text) or (follow_up and departments)):
         return None
     if words & {"رئيس", "عميد", "معاون", "مساعد", "المساعد", "نائب"}:
         return None  # not in the staff list: the AI says it is not available
 
-    departments = _departments_in(text)
     if departments:
         parts = []
         for department in departments:

@@ -169,7 +169,9 @@ def chat(message: str, history: list, request: gr.Request):
         yield with_buttons(social, next_suggestions(history, message))
         return
 
-    staff_answer = staff.handle(message)
+    replies = [text_of(i.get("content")) for i in history or []
+               if isinstance(i, dict) and i.get("role") == "assistant" and not (i.get("metadata") or {}).get("title")]
+    staff_answer = staff.handle(message, replies[-1] if replies else "")
     if staff_answer:
         save_to_archive(visitor, message, staff_answer, "staff")
         yield with_buttons(staff_answer, next_suggestions(history, message))
