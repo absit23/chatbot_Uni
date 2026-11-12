@@ -15,6 +15,7 @@ import faq  # noqa: E402
 import history  # noqa: E402
 import rag  # noqa: E402
 import smalltalk  # noqa: E402
+import staff  # noqa: E402
 from config import CHAT_LOG_FILE, LOCAL_NETWORK, MAX_QUESTIONS_PER_DAY, MAX_QUESTIONS_PER_VISITOR, SHARE  # noqa: E402
 from llm import NoProviderAvailable  # noqa: E402
 from textutils import text_of  # noqa: E402
@@ -161,6 +162,12 @@ def chat(message: str, history: list, request: gr.Request):
     if social:
         save_to_archive(visitor, message, social, "smalltalk")
         yield with_buttons(social, next_suggestions(history, message))
+        return
+
+    staff_answer = staff.handle(message)
+    if staff_answer:
+        save_to_archive(visitor, message, staff_answer, "staff")
+        yield with_buttons(staff_answer, next_suggestions(history, message))
         return
 
     fixed = faq.answer(message)

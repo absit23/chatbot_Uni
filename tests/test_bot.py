@@ -280,3 +280,49 @@ def test_university_procedures_reach_the_search():
     assert smalltalk.answer("مرحبا اريد تأييد استمرارية") is None
     info = (Path(__file__).parent.parent / "data" / "university" / "info.md").read_text(encoding="utf-8")
     assert "رقم الوصل" in info and "إلى من يهمه الأمر" in info
+
+
+# ---------- Teaching staff (made-up people: the real list is not in the public repo) ----------
+import staff  # noqa: E402
+
+FAKE_STAFF = [
+    {"department": "القانون", "name": "أ.د سامر خالد حسن", "degree": "دكتوراه", "title": "أستاذ",
+     "general": "القانون العام", "specific": "دستوري"},
+    {"department": "القانون", "name": "م.م. دينا علي كريم", "degree": "ماجستير", "title": "",
+     "general": "القانون الخاص", "specific": "مدني"},
+    {"department": "هندسة تقنيات الحاسوب", "name": "م.م. دينا علي كريم", "degree": "ماجستير", "title": "",
+     "general": "القانون الخاص", "specific": "مدني"},
+    {"department": "هندسة تقنيات الحاسوب", "name": "م.د ليث حسين جواد", "degree": "دكتوراه", "title": "مدرس",
+     "general": "هندسة الحاسبات", "specific": "ذكاء اصطناعي"},
+]
+
+
+@pytest.fixture
+def fake_staff(monkeypatch):
+    monkeypatch.setattr(staff, "STAFF", FAKE_STAFF)
+
+
+def test_staff_by_department(fake_staff):
+    text = staff.handle("منو تدريسيين قسم الحاسوب")
+    assert "ليث حسين جواد" in text and "سامر" not in text and "تدريسيان" in text
+
+
+def test_staff_summary_counts_shared_people_once(fake_staff):
+    assert "3 تدريسيين" in staff.handle("كم عدد التدريسيين في الجامعة؟")
+
+
+def test_staff_by_name_and_specialty(fake_staff):
+    assert "وأيضاً في قسم" in staff.handle("منو دينا علي")
+    assert "ليث" in staff.handle("اكو دكتور اختصاصه ذكاء اصطناعي")
+
+
+def test_staff_leaves_other_questions(fake_staff):
+    for q in ["استاذ كم اجور القانون", "شنو يدرس طالب الامن السيبراني", "منو رئيس قسم الحاسوب", "معدلي 70 علمي"]:
+        assert staff.handle(q) is None, q
+
+
+def test_staff_name_prefixes():
+    assert staff._bare_name("دعاء راهي سعدون") == "دعاء راهي سعدون"
+    assert staff._bare_name("م.م. دعاء راهي سعدون") == "دعاء راهي سعدون"
+    assert staff._bare_name("أ.م.د رحيم إبراهيم") == "رحيم ابراهيم"
+    assert staff._bare_name("م م . علا مرزة") == "علا مرزه"

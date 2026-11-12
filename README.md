@@ -76,3 +76,13 @@ Replace `data/guide.pdf`, edit `ASSISTANT_ROLE` and `DOCUMENT_NAME` in `src/conf
 - This repository is public, so only add documents that are already public.
 - Answers can still be wrong. For decisions, students should confirm in the guide itself.
 - `data/guide_pages_ocr.jsonl` is a rough backup. Its words are good, but its numbers are unreliable.
+
+
+## Teaching staff list (local only)
+
+Staff questions ("تدريسيين قسم القانون", "منو عدي صبري", "اكو دكتور اختصاصه ذكاء اصطناعي")
+are answered directly from `data/university/staff.csv`, never by the AI, so names are always exact.
+That file is in `.gitignore` because this repository is public. Create or update it from the
+university's Excel file (one sheet per department):
+
+    python src/staff.py import "path/to/staff.xlsx"
