@@ -180,8 +180,9 @@ def _people_named(text: str) -> list[dict]:
 
 
 def _by_specialty(text: str) -> list[dict]:
-    words = [w for w in re.findall("[ء-ي]{3,}", text) if w not in GENERIC_SPECIALTY]
-    words = [w[2:] if w.startswith("ال") and len(w) > 4 else w for w in words]
+    skip = GENERIC_SPECIALTY | STAFF_WORDS | PLURAL_STAFF_WORDS | SPECIALTY_WORDS | {"منو", "مين", "اكو", "يوجد", "دكتور", "استاذ"}
+    words = [re.sub("^(وال|بال|لل|ال|ب)(?=...)", "", w) for w in re.findall("[ء-ي]{3,}", text) if w not in skip]
+    words = [w for w in words if w not in skip]
     found = []
     for person in STAFF:
         specialty = normalize(f"{person['general']} {person['specific']}")
@@ -243,7 +244,8 @@ def handle(message: str, last_reply: str = "") -> str | None:
                          + "\n".join(_line(p) for p in people))
         return "\n\n".join(parts)
 
-    asks_specialty = words & SPECIALTY_WORDS or WHO_TEACHES.search(text)
+    bare_words = words | {w[2:] for w in words if w.startswith("ال")}
+    asks_specialty = bare_words & SPECIALTY_WORDS or WHO_TEACHES.search(text)
     specialists = _by_specialty(text) if asks_specialty else []
     if specialists and len(specialists) <= 15:
         return (f"التدريسيون في {UNIVERSITY_NAME} المتخصصون بما سألت عنه:\n"
