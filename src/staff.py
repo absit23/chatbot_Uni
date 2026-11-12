@@ -70,8 +70,10 @@ def _degree(value: str) -> str:
 
 def _title(value: str) -> str:
     v = normalize(_clean(value))
-    if not v or "لا يوجد" in v:
+    if not v:
         return ""
+    if "لا يوجد" in v:  # the university's file writes "لا يوجد" for assistant lecturers
+        return "مدرس مساعد"
     if "متمرس" in v:
         return "أستاذ متمرس"
     if "مساعد" in v:
@@ -199,7 +201,7 @@ def handle(message: str) -> str | None:
 
     if not (words & STAFF_WORDS or WHO_TEACHES.search(text)):
         return None
-    if "رئيس" in words or "عميد" in words or "معاون" in words:
+    if words & {"رئيس", "عميد", "معاون", "مساعد", "المساعد", "نائب"}:
         return None  # not in the staff list: the AI says it is not available
 
     departments = _departments_in(text)
