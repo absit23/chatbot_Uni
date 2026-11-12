@@ -38,7 +38,8 @@ def answer(message: str) -> str | None:
     words = set(raw_words) | set(tokenize(message))
     if not re.search("[ء-ي0-9]", clean) or (len(clean) <= 2 and not clean.isdigit()):
         return f"لم أفهم رسالتك تماماً 🙂 {HELP}"
-    if words & TOPIC_WORDS or len(raw_words) > 7:
+    # Longer messages ("شلونك اليوم؟ اني المبرمج مالتك") get a natural AI reply instead
+    if words & TOPIC_WORDS or len(raw_words) > 4:
         return None
     if words & WRONG_WORDS:
         return ("إذا كان في جوابي خطأ فأنا آسف 🙏 قل لي أي معلومة تقصد، أو اضغط 👎 تحت الجواب حتى يراجعه الفريق. "
