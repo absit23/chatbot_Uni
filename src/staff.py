@@ -58,6 +58,8 @@ WHO_TEACHES = re.compile(r"(منو|من|مين|اكو|يوجد|هل)\s+(يدرس
 NAME_PREFIX = re.compile(r"^[\s.]*((ا|أ)\s*\.?\s*(م\s*\.?\s*)?د|م\s*\.?\s*م|م\s*\.?\s*د|ا\s*\.?\s*م|د)(\s*\.\s*|\s+)(?=[ء-ي])")
 PLURAL_STAFF_WORDS = {"تدريسيين", "التدريسيين", "اساتذه", "الاساتذه", "دكاتره", "الدكاتره", "كادر", "الكادر",
                       "مدرسين", "المدرسين", "تدريسيات", "الهيئه"}
+OPINION_WORDS = {"رايك", "شرايك", "رأيك", "تقييمك", "تقيمه", "تقيم", "زين", "شين", "غبي", "فاشل", "ممتاز",
+                 "شاطر", "كفو", "سيء", "سيئ", "يفهم", "مايفهم", "تحبه", "تحبها", "خوش", "مو"}
 ASK_WORDS = {"منو", "مين", "تعرف", "تعرفه", "تعرفها", "شنو", "معلومات", "اختصاص", "اختصاصه", "اختصاصها",
              "قسمه", "قسمها", "وين", "لقب", "لقبه", "لقبها", "شهاده", "شهادته", "شهادتها"}
 SPECIALTY_WORDS = {"اختصاص", "اختصاصه", "اختصاصها", "تخصص", "تخصصه", "متخصص", "متخصصين", "يدرس", "يدرسون"}
@@ -175,7 +177,7 @@ def _people_named(text: str) -> list[dict]:
     found = []
     for person in STAFF:
         words = _bare_name(person["name"]).split()
-        if len(words) >= 2 and re.search(rf"(^|\s){re.escape(words[0])}\s+{re.escape(words[1])}(\s|$)", text):
+        if len(words) >= 2 and re.search(rf"(^|\s)[بلو]?{re.escape(words[0])}\s+{re.escape(words[1])}(\s|$)", text):
             if all(_key(p) != _key(person) for p in found):
                 found.append(person)
     return found
@@ -242,6 +244,11 @@ def handle(message: str, last_reply: str = "") -> str | None:
         return None  # a long chatty message (opinions, stories) is for the AI, not a staff list
 
     named = _people_named(text)
+    # Opinions about a real person are never given, in praise or blame
+    if named and words & OPINION_WORDS:
+        person = named[0]
+        return (f"كل تدريسيي {UNIVERSITY_NAME} محل احترام وتقدير، وتقييمهم ليس من عملي 🙂 "
+                f"وهذه المعلومات المتوفرة:\n" + _line(person, with_department=True))
     # "منو زينب ثامر؟" asks for her details; a longer remark that only mentions her is chat for the AI
     if named and len(text.split()) > len(_bare_name(named[0]["name"]).split()) + 2 and not words & ASK_WORDS:
         named = []

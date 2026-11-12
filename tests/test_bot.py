@@ -353,3 +353,14 @@ def test_staff_list_reaches_the_ai_only_for_staff_talk(fake_staff):
     info = staff.context_for_ai("اي شنو اسمي خمن؟", "اني اختصاصي ذكاء اصطناعي")
     assert "ليث حسين جواد" in info and "أ.د" not in info
     assert staff.context_for_ai("كم اجور القانون؟") == ""
+
+
+def test_insult_about_a_teacher_is_not_taken_as_about_the_bot():
+    assert smalltalk.answer("هذا غبي الدكتور") is None
+    assert "أعتذر" in smalltalk.answer("انت غبي")
+
+
+def test_no_opinions_about_teachers(fake_staff):
+    for q in ["شنو رايك بليث حسين؟", "ليث حسين غبي", "ليث حسين زين؟"]:
+        text = staff.handle(q)
+        assert text and "محل احترام" in text and "ليث حسين جواد" in text, q

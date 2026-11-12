@@ -47,6 +47,10 @@ def answer(message: str) -> str | None:
     if words & SAD_WORDS:
         return ("سلامتك 🌿 إن شاء الله تتحسن. أنا مختص بشؤون الجامعة والدراسة، فما أقدر أسولف بكل المواضيع، "
                 "لكن إذا الدراسة أو اختيار القسم هو الذي يشغل بالك، احكِ لي وأساعدك خطوة بخطوة.")
+    about_someone = words & {"دكتور", "الدكتور", "استاذ", "الاستاذ", "ست", "الست", "هذا", "هذه", "هاي", "هو", "هي",
+                             "رئيس", "التدريسي", "المدرس", "دكتوره", "استاذه", "الموظف"}
+    if words & INSULT_WORDS and about_someone:
+        return None  # an insult about a teacher or staff member: the AI answers it respectfully
     if words & INSULT_WORDS:
         return ("أعتذر إن لم يكن جوابي بالمستوى المطلوب. أعد صياغة سؤالك من فضلك، وسأحاول مساعدتك بشكل أفضل. "
                 f"ويمكنك دائماً التواصل مع {ADMISSION_CONTACT}.")
