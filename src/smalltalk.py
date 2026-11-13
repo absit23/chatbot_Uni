@@ -43,9 +43,11 @@ def answer(message: str) -> str | None:
         # English messages: short social ones get an Arabic reply here, real questions go to the AI
         e = set(english)
         if e & {"thanks", "thank", "thx"}:
-            return "العفو، يسعدني ذلك! 🌿 هل تحتاج شيئاً آخر؟"
+            return "You're welcome! 🌿 Anything else I can help you with?"
         if e & {"hi", "hello", "hey", "salam"} or {"how", "are"} <= e or {"how", "r", "u"} <= e:
-            return f"أهلاً وسهلاً بك 🌿 أنا بخير، شكراً لسؤالك. أنا المساعد الذكي في {UNIVERSITY_NAME}. {HELP}"
+            return ("Hello and welcome! 🌿 I'm doing well, thank you. I'm the AI assistant of the Islamic University "
+                    "– Babylon Campus. You can ask me about departments, fees, discounts, required documents, "
+                    "or student rules such as exams and transfers. You can write in English or Arabic.")
         return None
     if not re.search("[ء-ي0-9]", clean) or (len(clean) <= 2 and not clean.isdigit()):
         return f"لم أفهم رسالتك تماماً 🙂 {HELP}"

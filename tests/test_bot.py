@@ -409,6 +409,6 @@ def test_only_real_identity_questions_get_the_intro():
 
 
 def test_english_messages():
-    assert "أهلاً" in smalltalk.answer("hi how r u ?")
-    assert "العفو" in smalltalk.answer("thanks")
+    assert "Hello" in smalltalk.answer("hi how r u ?")
+    assert "welcome" in smalltalk.answer("thanks")
     assert smalltalk.answer("what are the fees for law?") is None  # a real question goes to the AI
