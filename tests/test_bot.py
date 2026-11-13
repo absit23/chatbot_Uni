@@ -406,3 +406,9 @@ def test_only_real_identity_questions_get_the_intro():
     assert smalltalk.answer("انت غاش من قبل؟") is None
     assert "المساعد الذكي" in smalltalk.answer("منو انت؟")
     assert "المساعد الذكي" in smalltalk.answer("شنو اسمك")
+
+
+def test_english_messages():
+    assert "أهلاً" in smalltalk.answer("hi how r u ?")
+    assert "العفو" in smalltalk.answer("thanks")
+    assert smalltalk.answer("what are the fees for law?") is None  # a real question goes to the AI

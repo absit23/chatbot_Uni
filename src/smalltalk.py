@@ -38,6 +38,15 @@ def answer(message: str) -> str | None:
     clean = normalize(message).strip()
     raw_words = re.findall("[ء-ي]+", clean)
     words = set(raw_words) | set(tokenize(message))
+    english = re.findall("[a-z]+", message.lower())
+    if english and not re.search("[ء-ي]", clean):
+        # English messages: short social ones get an Arabic reply here, real questions go to the AI
+        e = set(english)
+        if e & {"thanks", "thank", "thx"}:
+            return "العفو، يسعدني ذلك! 🌿 هل تحتاج شيئاً آخر؟"
+        if e & {"hi", "hello", "hey", "salam"} or {"how", "are"} <= e or {"how", "r", "u"} <= e:
+            return f"أهلاً وسهلاً بك 🌿 أنا بخير، شكراً لسؤالك. أنا المساعد الذكي في {UNIVERSITY_NAME}. {HELP}"
+        return None
     if not re.search("[ء-ي0-9]", clean) or (len(clean) <= 2 and not clean.isdigit()):
         return f"لم أفهم رسالتك تماماً 🙂 {HELP}"
     # Longer messages ("شلونك اليوم؟ اني المبرمج مالتك") get a natural AI reply instead
