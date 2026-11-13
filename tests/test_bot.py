@@ -400,3 +400,9 @@ def test_cheating_and_failing_rules_are_fixed_answers():
     for q in ["كم سنة يحق لي ارسب؟", "متى يرقن قيد الطالب؟"]:
         assert "سنتين متتاليتين" in faq.answer(q), q
     assert faq.answer("راسب بمادة شلون الدور الثاني") is None
+
+
+def test_only_real_identity_questions_get_the_intro():
+    assert smalltalk.answer("انت غاش من قبل؟") is None
+    assert "المساعد الذكي" in smalltalk.answer("منو انت؟")
+    assert "المساعد الذكي" in smalltalk.answer("شنو اسمك")

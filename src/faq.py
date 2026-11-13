@@ -103,7 +103,9 @@ TOPICS = {
 # answered with the plain summary written in info.md, never re-worded by the AI.
 def _rule(start: str) -> str:
     title = next(t for t in _sections() if t.startswith(start))
-    return f"**{title}**\n{_section(start)}"
+    lines = [f"**{line}**" if line.endswith(":") and not line.startswith("-") else line
+             for line in _section(start).split("\n")]
+    return f"**{title}**\n" + "\n".join(lines)
 
 
 RULES = {

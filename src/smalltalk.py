@@ -76,7 +76,9 @@ def answer(message: str) -> str | None:
         return _pick(["العفو، يسعدني ذلك! هل تحتاج شيئاً آخر؟",
                       "شكراً لك 🌿 إذا عندك سؤال آخر فأنا جاهز.",
                       "يسعدني أني ساعدتك! تفضل بأي سؤال آخر."])
-    if (words & {"اسمك", "انت"} and len(raw_words) <= 4) or "اسم جامعتك" in clean or "اسم الجامعه" in clean:
+    asks_identity = "اسمك" in words or bool(
+        re.search(r"(من|منو|شنو|شني|مين)\s+(انت|انتي)\b|(انت|انتي)\s+(من|منو|شنو|مين)\s*[؟?]?$|عرفني\s+بنفسك|عرف\s+نفسك", clean))
+    if (asks_identity and len(raw_words) <= 4) or "اسم جامعتك" in clean or "اسم الجامعه" in clean:
         return (f"أنا المساعد الذكي في {UNIVERSITY_NAME}، برنامج ذكاء اصطناعي يجيب عن أسئلة "
                 f"القبول والتسجيل والأجور، وتعليمات الطلبة للعام الدراسي 2026-2027. {HELP}")
     return None
