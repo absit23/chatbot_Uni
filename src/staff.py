@@ -231,6 +231,28 @@ def context_for_ai(*messages: str) -> str:
     return f"[قائمة الكادر التدريسي في {UNIVERSITY_NAME}، وهي المصدر الوحيد لأسماء التدريسيين]\n" + "\n".join(lines)
 
 
+# First names of the university leadership: those questions are answered from info.md by the AI
+LEADERSHIP_WORDS = {"حيدر", "جواد", "القريشي", "الجنابي", "الخفاجي", "الزهره"}
+WHO_IS = re.compile(r"(^|\s)(منو|مين|من هو|من هي|تعرف|تعرفون|تعرفين|اكو|يوجد)(\s|$)")
+
+
+def _first_name(person: dict) -> str:
+    words = _bare_name(person["name"]).split()
+    return " ".join(words[:2]) if words and words[0] == "عبد" and len(words) > 1 else (words[0] if words else "")
+
+
+def _first_name_matches(text: str, words: set) -> list[dict]:
+    """Staff whose first name is in a short "who is X?" question."""
+    if len(words) > 6 or not WHO_IS.search(text) or words & LEADERSHIP_WORDS:
+        return []
+    found = []
+    for person in STAFF:
+        name = _first_name(person)
+        if name and re.search(rf"(^|\s)[بلو]?{re.escape(name)}(\s|$)", text) and all(_key(p) != _key(person) for p in found):
+            found.append(person)
+    return found
+
+
 def handle(message: str, last_reply: str = "") -> str | None:
     """A staff answer, or None when the message is not about the teaching staff.
 
@@ -269,6 +291,18 @@ def handle(message: str, last_reply: str = "") -> str | None:
     departments = _departments_in(text)
     if not departments:
         departments = next((d for keys, d in GROUPS.items() if words & set(keys)), [])
+    # "من هو عباس؟" with only a first name: everyone on the staff with that first name
+    first = _first_name_matches(text, words)
+    if first:
+        if len(first) == 1:
+            return "معلومات التدريسي في " + UNIVERSITY_NAME + ":\n" + _line(first[0], with_department=True)
+        if len(first) <= 8:
+            return (f"يوجد في {UNIVERSITY_NAME} أكثر من تدريسي بهذا الاسم:\n"
+                    + "\n".join(_line(p, with_department=True) for p in first)
+                    + "\n\nاكتب الاسم الثاني لأعرف من تقصد بالضبط.")
+        return (f"يوجد {_number(len(first))} في {UNIVERSITY_NAME} بهذا الاسم 🙂 "
+                "اكتب الاسم الثاني أو القسم لأعرف من تقصد بالضبط.")
+
     if not (words & STAFF_WORDS or WHO_TEACHES.search(text) or (follow_up and departments)):
         return None
     if words & {"رئيس", "عميد", "معاون", "مساعد", "المساعد", "نائب"}:

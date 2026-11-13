@@ -412,3 +412,9 @@ def test_english_messages():
     assert "Hello" in smalltalk.answer("hi how r u ?")
     assert "welcome" in smalltalk.answer("thanks")
     assert smalltalk.answer("what are the fees for law?") is None  # a real question goes to the AI
+
+
+def test_who_is_first_name(fake_staff):
+    assert "ليث حسين جواد" in staff.handle("من هو ليث في الجامعة؟")
+    assert "أكثر من تدريسي" not in staff.handle("منو ليث")
+    assert staff.handle("ليث شنو قصته وياك اليوم بالضبط") is None  # not a "who is" question
