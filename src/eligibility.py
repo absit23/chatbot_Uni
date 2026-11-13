@@ -328,4 +328,25 @@ def handle(message: str, history: list) -> tuple[str, list[str]] | None:
         if elsewhere:
             return not_offered(elsewhere, grade, None) + "\n\n" + ask, BRANCH_BUTTONS
         return f"معدلك {_grade_text(grade)}. {ask}", BRANCH_BUTTONS
+    words = set(re.findall("[ء-ي]+", normalize(message)))
+    only_opinion = now["grade"] is None and now["branch"] is None and not (now["wanted"] or now["elsewhere"] or now["times"])
+    if only_opinion and words & GRADE_OPINION_WORDS:  # "خوش معدل؟" after the list: a short verdict, not the list again
+        return grade_verdict(grade, branch), []
     return calculate(grade, branch, times, wanted, elsewhere), []
+
+
+GRADE_OPINION_WORDS = {"زين", "خوش", "حلو", "عالي", "ممتاز", "جيد", "ضعيف", "واطي", "قليل", "كافي", "يكفي", "شلون", "شنو رايك", "رايك"}
+
+
+def grade_verdict(grade: float, branch: str) -> str:
+    """A short, friendly comment on a grade, with how many study options it opens."""
+    full = calculate(grade, branch, None, [], [])
+    ok_part = full.split("✅", 1)[1].split("\n\n", 1)[0] if "✅" in full else ""
+    ok = sum(1 for line in ok_part.split("\n") if line.startswith("• "))
+    level = ("ممتاز جداً 🌟" if grade >= 90 else "جيد جداً 👏" if grade >= 75 else "جيد 👍" if grade >= 65
+             else "مقبول" if grade >= 50 else "منخفض قليلاً")
+    if ok:
+        return (f"معدل {_grade_text(grade)} {level}، ويؤهلك للتقديم على {ok} من خيارات الدراسة "
+                f"(صباحي ومسائي) في {UNIVERSITY_NAME}. القائمة الكاملة في الجواب السابق.")
+    return (f"معدل {_grade_text(grade)} {level}، ولا يكفي حالياً لأقسام {UNIVERSITY_NAME} لفرع {BRANCH_NAMES[branch]}، "
+            "لكن يمكنك الاطلاع على قنوات القبول الأخرى أو مراجعة شعبة التسجيل.")

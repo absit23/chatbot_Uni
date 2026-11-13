@@ -248,7 +248,7 @@ STYLE = {
           position: fixed !important; top: 0; right: 0; bottom: 0; z-index: 900;
           width: 100vw !important; min-width: 0 !important; max-width: none !important;
           padding: 0 16px 24px !important; overflow-y: auto; gap: 12px !important;
-          background: var(--ivory, #f7f3ea) !important;
+          background: var(--ivory) !important;
           transform: translateX(105%); transition: transform .3s cubic-bezier(.2,.7,.2,1);
         }
         body.drawer-open #sidebar { transform: none; }
@@ -257,7 +257,7 @@ STYLE = {
           opacity: 0; pointer-events: none; transition: opacity .25s;
         }
         body.drawer-open #drawer-backdrop { opacity: 1; pointer-events: auto; }
-        .head-actions { display: flex !important; }
+        .head-actions #newchat-btn, .head-actions #menu-btn { display: inline-flex !important; }
         #drawer-top { display: flex !important; }
         #chat-list .chat-list { max-height: none !important; }
       }
@@ -300,6 +300,20 @@ STYLE = {
             backdrop.id = 'drawer-backdrop';
             document.body.appendChild(backdrop);
         }
+        // Light / dark mode, remembered on this device
+        const setNight = (on) => {
+            document.body.classList.toggle('night', on);
+            const b = document.getElementById('theme-btn');
+            if (b) { b.textContent = on ? '☀' : '☾'; b.setAttribute('aria-label', on ? 'الوضع النهاري' : 'الوضع الليلي'); }
+            try { localStorage.setItem('uni-night', on ? '1' : '0'); } catch (e) {}
+        };
+        let savedNight = false;
+        try { savedNight = localStorage.getItem('uni-night') === '1'; } catch (e) {}
+        setNight(savedNight);
+        setTimeout(() => setNight(document.body.classList.contains('night')), 800);  // header may load later
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('#theme-btn')) setNight(!document.body.classList.contains('night'));
+        });
         const close = () => document.body.classList.remove('drawer-open');
         document.addEventListener('click', (event) => {
             if (event.target.closest('#menu-btn')) { document.body.classList.add('drawer-open'); return; }
@@ -323,6 +337,7 @@ HEADER = f"""
   </div>
   <div class="year">2026 – 2027</div>
   <div class="head-actions">
+    <button id="theme-btn" class="round-btn" aria-label="الوضع الليلي">☾</button>
     <button id="newchat-btn" class="round-btn" aria-label="محادثة جديدة">✎</button>
     <button id="menu-btn" class="round-btn" aria-label="المحادثات">☰</button>
   </div>

@@ -418,3 +418,11 @@ def test_who_is_first_name(fake_staff):
     assert "ليث حسين جواد" in staff.handle("من هو ليث في الجامعة؟")
     assert "أكثر من تدريسي" not in staff.handle("منو ليث")
     assert staff.handle("ليث شنو قصته وياك اليوم بالضبط") is None  # not a "who is" question
+
+
+def test_grade_opinion_gets_a_short_verdict():
+    history = [{"role": "user", "content": "علمي 100"}, {"role": "assistant", "content": "📊 حاسبة القبول"}]
+    text, _ = eligibility.handle("خوش معدل؟", history)
+    assert "ممتاز" in text and "✅" not in text
+    text, _ = eligibility.handle("والقانون يقبلني؟", history)
+    assert "القانون" in text
