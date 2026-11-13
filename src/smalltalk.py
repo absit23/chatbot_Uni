@@ -16,11 +16,12 @@ HELP = ("يمكنك سؤالي عن الأقسام المتاحة لمعدلك،
 GREETING_WORDS = {"السلام", "سلام", "مرحبا", "مرحبه", "هلا", "هلو", "اهلا", "صباح", "مساء", "هاي"}
 THANKS_WORDS = {"شكرا", "شكر", "مشكور", "احسنت", "تسلم", "عاشت", "يعطيك"}
 COMPLIMENT_WORDS = {"حلو", "حلوه", "جميل", "رائع", "ممتاز", "لطيف", "عسل", "كفو", "ذكي", "شاطر", "خوش", "مبدع"}
-LOVE_WORDS = {"احبك", "حبيبي", "حبيبتي", "اعشقك", "تحبني", "تتزوجني", "حياتي", "قلبي"}
+LOVE_WORDS = {"احبك", "احبج", "اعشقك", "تحبني", "تتزوجني", "اموت"}  # "حبيبي" alone is just "dear" in Iraqi
 INSULT_WORDS = {"غبي", "فاشل", "سيء", "سيئ", "زفت", "تافه", "حمار", "خايس", "مطي", "زمال", "انجب", "اسكت", "حيوان", "جلب", "كلب"}
 WRONG_WORDS = {"جذاب", "كذاب", "تكذب", "تجذب", "غلط", "خطا", "غلطان", "مو صحيح"}
 SAD_WORDS = {"ضايج", "ضايق", "زعلان", "حزين", "متضايق", "طفشان", "ملل", "ملان", "نسولف", "اسولف", "سوالف"}
 HOW_ARE_YOU = {"حالك", "شلونك", "شلونكم", "اخبارك", "احوالك", "عامل", "شخبارك", "شونك"}
+WHO_IS = re.compile(r"(^|\s)(منو|مين|من هو|من هي|تعرف)(\s|$)")
 HUMAN_WORDS = {"انسان", "بشر", "روبوت", "موظف", "حقيقي", "اله", "بوت"}
 WHO_WORDS = {"من", "انت", "اسمك", "شنو", "منو"}
 
@@ -42,6 +43,8 @@ def answer(message: str) -> str | None:
     if english and not re.search("[ء-ي]", clean):
         # English messages: short social ones get an Arabic reply here, real questions go to the AI
         e = set(english)
+        if e & {"fuck", "stupid", "idiot", "shit", "dumb", "fu"}:
+            return "Sorry if my answer wasn't helpful 🙏 Please rephrase your question and I'll do my best."
         if e & {"thanks", "thank", "thx"}:
             return "You're welcome! 🌿 Anything else I can help you with?"
         if e & {"hi", "hello", "hey", "salam"} or {"how", "are"} <= e or {"how", "r", "u"} <= e:
@@ -57,9 +60,13 @@ def answer(message: str) -> str | None:
     if words & WRONG_WORDS:
         return ("إذا كان في جوابي خطأ فأنا آسف 🙏 قل لي أي معلومة تقصد، أو اضغط 👎 تحت الجواب حتى يراجعه الفريق. "
                 f"والمعلومة المؤكدة دائماً عند {ADMISSION_CONTACT}.")
+    if WHO_IS.search(clean) and not re.search(r"(انت|انتي|اسمك)", clean):
+        return None  # "منو هو سلام؟" asks about a person named سلام, not a greeting
+    if words & {"اضحك", "ضحكني", "نكته", "نكت", "اضحكني"}:
+        return None  # asks for a joke: the AI answers with light humour
     if words & SAD_WORDS:
-        return ("سلامتك 🌿 إن شاء الله تتحسن. أنا مختص بشؤون الجامعة والدراسة، فما أقدر أسولف بكل المواضيع، "
-                "لكن إذا الدراسة أو اختيار القسم هو الذي يشغل بالك، احكِ لي وأساعدك خطوة بخطوة.")
+        return ("سلامتك 🌿 إن شاء الله تتحسن وتصير بأحسن حال. وإذا كانت الدراسة أو اختيار القسم هو الذي يشغل بالك، "
+                "احكِ لي وأساعدك خطوة بخطوة.")
     about_someone = words & {"دكتور", "الدكتور", "استاذ", "الاستاذ", "ست", "الست", "هذا", "هذه", "هاي", "هو", "هي",
                              "رئيس", "التدريسي", "المدرس", "دكتوره", "استاذه", "الموظف"}
     if words & INSULT_WORDS and about_someone:

@@ -426,3 +426,13 @@ def test_grade_opinion_gets_a_short_verdict():
     assert "ممتاز" in text and "✅" not in text
     text, _ = eligibility.handle("والقانون يقبلني؟", history)
     assert "القانون" in text
+
+
+def test_small_talk_cases_from_13_nov():
+    assert smalltalk.answer("منو هو سلام؟") is None
+    assert smalltalk.answer("منو هو استاذ سلام؟") is None
+    assert "وعليكم السلام" in smalltalk.answer("سلام عليكم")
+    assert smalltalk.answer("ماشي حبيبي") is None or "برنامج مساعد" not in smalltalk.answer("ماشي حبيبي")
+    assert "برنامج مساعد" in smalltalk.answer("اموت عليك")
+    assert smalltalk.answer("اضحك وياي اني ضايج") is None
+    assert "Sorry" in smalltalk.answer("fuck u")
